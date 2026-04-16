@@ -1,6 +1,15 @@
-import { Link, Outlet } from "react-router-dom";
+import { Link, Outlet, useNavigate } from "react-router-dom";
+import { LOGIN_ROUTE } from "../../router";
+import { useEffect } from "react";
+import { axiosClient } from "@/lib/axios";
 
-export default function Layout() {
+export default function SyndicDashboardLayout() {
+  const navigate = useNavigate()
+
+  useEffect(()=> {
+    axiosClient.get("/user").catch(() => navigate(LOGIN_ROUTE));
+  }, [navigate])
+    
   return (
     <>
       <header>
@@ -19,7 +28,7 @@ export default function Layout() {
                 </Link>
               </li>
               <li className="ml-5 px-2 py-1">
-                <Link className="flex items-center hover:text-gray-200" to="/login">
+                <Link className="flex items-center hover:text-gray-200" to={LOGIN_ROUTE}>
                   Login
                 </Link>
               </li>

@@ -1,9 +1,12 @@
 import { Link, Outlet } from "react-router-dom";
+import { LOGIN_ROUTE } from "../router";
 
-export default function Layout() {
+
+
+export default function GuestLayout() {
   return (
     <>
-      <header>
+    <header>
         <div className="items-center justify-between flex bg-gray-800 bg-opacity-90 px-12 py-4 mb-4 mx-auto shadow-2xl">
           <div className="text-2xl text-white font-semibold inline-flex items-center">
             <Link to="/" className="hover:text-gray-200">
@@ -19,7 +22,7 @@ export default function Layout() {
                 </Link>
               </li>
               <li className="ml-5 px-2 py-1">
-                <Link className="flex items-center hover:text-gray-200" to="/login">
+                <Link className="flex items-center hover:text-gray-200" to={LOGIN_ROUTE}>
                   Login
                 </Link>
               </li>
@@ -31,11 +34,10 @@ export default function Layout() {
             </ul>
           </div>
         </div>
-      </header>
-
-      <main className={"container mx-auto px-4"}>
+    </header>
+    <main className={'container mx-auto px-4'}>
         <Outlet />
-      </main>
+    </main>
     </>
   );
 }

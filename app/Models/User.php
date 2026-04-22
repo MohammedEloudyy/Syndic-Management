@@ -5,6 +5,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -45,5 +46,30 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function immeubles(): HasMany
+    {
+        return $this->hasMany(Immeuble::class);
+    }
+
+    public function appartements(): HasMany
+    {
+        return $this->hasMany(Appartement::class);
+    }
+
+    public function residents(): HasMany
+    {
+        return $this->hasMany(Resident::class);
+    }
+
+    public function paiements(): HasMany
+    {
+        return $this->hasMany(Paiement::class);
+    }
+
+    public function depenses(): HasMany
+    {
+        return $this->hasMany(Depense::class);
     }
 }

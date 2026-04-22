@@ -1,18 +1,21 @@
-import { axiosClient } from "@/lib/axios";
+import axios from "axios";
+import { getBackendOrigin, webClient } from "@/api/axios";
 
-function getCookie(name) {
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop().split(";").shift();
-  return null;
+export async function loginUser(credentials) {
+  // Step 1: Get CSRF token from Sanctum
+  try {
+    await axios.get(getBackendOrigin() + "/sanctum/csrf-cookie", {
+      withCredentials: true,
+      timeout: 5000,
+    });
+  } catch (error) {
+    console.error("CSRF cookie request failed:", error);
+    throw new Error("Impossible d'initialiser la connexion");
+  }
+
+  // Step 2: Perform login (this establishes session)
+  const { data } = await webClient.post("/login", credentials);
+  
+  // Returns: { user: {...}, message: "Login successful" }
+  return data;
 }
-
-export async function loginApi(credentials) {
-  // Sanctum: CSRF cookie must be loaded before login POST.
-  await axiosClient.get("/sanctum/csrf-cookie");
-  const xsrf = getCookie("XSRF-TOKEN");
-  return axiosClient.post("/login", credentials, {
-    headers: xsrf ? { "X-XSRF-TOKEN": xsrf } : undefined,
-  });
-}
-

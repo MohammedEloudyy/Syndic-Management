@@ -2,7 +2,7 @@ import { Link, isRouteErrorResponse, useRouteError } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-export function GlobalErrorPage() {
+export default function GlobalErrorPage() {
   const error = useRouteError();
   const message =
     isRouteErrorResponse(error) && error.status

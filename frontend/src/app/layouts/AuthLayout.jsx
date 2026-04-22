@@ -1,10 +1,11 @@
-import { Link } from "react-router-dom";
-import { Building2, CreditCard, Lock, Percent, Users } from "lucide-react";
+import { Outlet, Link, useLocation } from "react-router-dom";
+import { Building2, CreditCard, Lock, Users } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
-export function AuthLayout({ children, mode = "login" }) {
-  const isLogin = mode === "login";
+export default function AuthLayout() {
+  const { pathname } = useLocation();
+  const isLogin = pathname === "/login";
 
   return (
     <div className="min-h-screen bg-background">
@@ -15,7 +16,7 @@ export function AuthLayout({ children, mode = "login" }) {
               Gestion moderne des copropriétés
             </div>
             <p className="text-sm text-blue-100">
-              Plotez immeubles, appartements, résidents et paiements dans une
+              Pilotez immeubles, appartements, résidents et paiements dans une
               interface intuitive. Automatisez vos tâches, suivez vos revenus
               et offrez une meilleure expérience à vos résidents.
             </p>
@@ -84,7 +85,9 @@ export function AuthLayout({ children, mode = "login" }) {
                 </Link>
               </div>
 
-              <div className="mt-6">{children}</div>
+              <div className="mt-6">
+                <Outlet />
+              </div>
             </Card>
           </div>
         </div>
@@ -92,4 +95,3 @@ export function AuthLayout({ children, mode = "login" }) {
     </div>
   );
 }
-

@@ -1,25 +1,39 @@
-import { Navigate, useLocation } from "react-router-dom";
-import { useAuthReady } from "@/features/auth/useAuthReady";
+import { Navigate, Outlet } from "react-router-dom";
 import { useAuthStore } from "@/features/auth/store/authStore";
-import { Loader2 } from "lucide-react";
 
-export function RedirectIfAuthed({ children }) {
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const authReady = useAuthReady();
-  const location = useLocation();
-
-  if (!authReady) {
+/**
+ * RedirectIfAuthed Guard
+ * 
+ * Prevents authenticated users from accessing auth pages (login, register).
+ * Gating:
+ * - loading (user === undefined) → Show splash (prevents redirect flicker)
+ * - authenticated (user !== null) → Redirect to dashboard
+ * - guest (user === null) → Show auth pages
+ */
+export default function RedirectIfAuthed() {
+  const { user } = useAuthStore();
+  
+  // Determine auth state from user value
+  const isLoading = user === undefined;
+  const isAuthenticated = user !== null && user !== undefined;
+  
+  // State 1: Loading - Show splash while checking
+  if (isLoading) {
     return (
-      <div className="min-h-screen grid place-items-center bg-background">
-        <Loader2 className="h-5 w-5 animate-spin text-primary" />
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="text-center">
+          <div className="mb-4 h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto"></div>
+          <p className="text-sm text-muted-foreground">Chargement...</p>
+        </div>
       </div>
     );
   }
-
+  
+  // State 2: Authenticated - Redirect to dashboard
   if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace state={{ from: location }} />;
+    return <Navigate to="/dashboard" replace />;
   }
-
-  return children;
+  
+  // State 3: Guest - Show auth pages
+  return <Outlet />;
 }
-

@@ -1,34 +1,19 @@
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet } from "react-router-dom";
 import { useState } from "react";
-import { Navbar } from "@/dashboard/components/Navbar";
-import { Sidebar } from "@/dashboard/components/Sidebar";
-import { useAuthStore } from "@/features/auth/store/authStore";
-import { logoutApi } from "@/features/auth/api/logout";
+import Navbar from "@/features/dashboard/components/Navbar";
+import Sidebar from "@/features/dashboard/components/Sidebar";
+import { useAuth } from "@/features/auth/useAuth";
 
-export function DashboardLayout() {
-  const navigate = useNavigate();
-  const logout = useAuthStore((s) => s.logout);
+export default function DashboardLayout() {
+  const { logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const onLogout = async () => {
-    try {
-      await logoutApi();
-    } catch {
-      // Ignore network/backend issues for frontend logout.
-    }
-    logout();
-    navigate("/login");
+  const handleLogout = async () => {
+    setMobileOpen(false);
+    await logout();
   };
 
-  const sidebar = (
-    <Sidebar
-      collapsed={false}
-      onLogout={() => {
-        setMobileOpen(false);
-        onLogout();
-      }}
-    />
-  );
+  const sidebar = <Sidebar collapsed={false} onLogout={handleLogout} />;
 
   return (
     <div className="min-h-screen bg-background">
@@ -62,4 +47,3 @@ export function DashboardLayout() {
     </div>
   );
 }
-

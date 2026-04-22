@@ -1,7 +1,7 @@
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export function PageHeader({ title, description, onAdd, addLabel = "+ Ajouter" }) {
+export default function PageHeader({ title, description, onAdd, addLabel = "+ Ajouter" }) {
   return (
     <div className="mb-5 flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
       <div>

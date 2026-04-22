@@ -1,6 +1,6 @@
-import { axiosClient } from "@/lib/axios";
+import { axiosClient } from "@/api/axios";
 
-export async function meApi() {
-  return axiosClient.get("/user");
+export async function getMe() {
+  const { data } = await axiosClient.get("/user");
+  return data;
 }
-

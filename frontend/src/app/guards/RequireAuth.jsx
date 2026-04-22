@@ -1,24 +1,40 @@
-import { Navigate } from "react-router-dom";
-import { useAuthReady } from "@/features/auth/useAuthReady";
+import { Navigate, Outlet } from "react-router-dom";
 import { useAuthStore } from "@/features/auth/store/authStore";
-import { Loader2 } from "lucide-react";
 
-export function RequireAuth({ children }) {
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const authReady = useAuthReady();
-
-  if (!authReady) {
+/**
+ * RequireAuth Guard
+ * 
+ * Gates protected routes with 3-state gating:
+ * - loading (user === undefined) → Show splash screen (prevents flicker)
+ * - authenticated (user !== null) → Render protected content
+ * - guest (user === null) → Redirect to login
+ * 
+ * This prevents the bug where dashboard briefly shows then redirects.
+ */
+export default function RequireAuth() {
+  const { user } = useAuthStore();
+  
+  // Determine auth state from user value
+  const isLoading = user === undefined;
+  const isAuthenticated = user !== null && user !== undefined;
+  
+  // State 1: Loading - Show splash screen (prevents flicker)
+  if (isLoading) {
     return (
-      <div className="min-h-screen grid place-items-center bg-background">
-        <Loader2 className="h-5 w-5 animate-spin text-primary" />
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="text-center">
+          <div className="mb-4 h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto"></div>
+          <p className="text-sm text-muted-foreground">Chargement...</p>
+        </div>
       </div>
     );
   }
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+  
+  // State 2: Authenticated - Render protected routes
+  if (isAuthenticated) {
+    return <Outlet />;
   }
-
-  return children;
+  
+  // State 3: Guest - Redirect to login
+  return <Navigate to="/login" replace />;
 }
-

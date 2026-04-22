@@ -1,20 +1,24 @@
-import { Loader2 } from "lucide-react";
 import { Navigate } from "react-router-dom";
-import { useAuthReady } from "@/features/auth/useAuthReady";
 import { useAuthStore } from "@/features/auth/store/authStore";
 
+/**
+ * RootRedirect
+ * 
+ * Handles root "/" route redirection based on auth state.
+ * Uses 3-state gating to prevent redirect flicker.
+ */
 export function RootRedirect() {
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const authReady = useAuthReady();
+  const { user } = useAuthStore();
+  
+  // Determine auth state
+  const isLoading = user === undefined;
+  const isAuthenticated = user !== null && user !== undefined;
 
-  if (!authReady) {
-    return (
-      <div className="min-h-screen grid place-items-center bg-background">
-        <Loader2 className="h-5 w-5 animate-spin text-primary" />
-      </div>
-    );
+  // Show nothing while loading (router handles gating)
+  if (isLoading) {
+    return null;
   }
 
+  // Redirect based on auth state
   return <Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />;
 }
-

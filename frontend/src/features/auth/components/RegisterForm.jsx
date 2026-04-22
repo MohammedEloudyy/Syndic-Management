@@ -5,8 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, Loader2, Mail, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useNavigate } from "react-router-dom";
-import { registerApi } from "@/features/auth/api/register";
+import { useAuth } from "@/features/auth/useAuth";
 
 const schema = z
   .object({
@@ -20,8 +19,9 @@ const schema = z
     path: ["passwordConfirmation"],
   });
 
-export function RegisterForm() {
-  const navigate = useNavigate();
+export default function RegisterForm() {
+  const { register: registerUser } = useAuth();
+
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState("");
 
@@ -41,13 +41,12 @@ export function RegisterForm() {
   const onSubmit = async (values) => {
     setServerError("");
     try {
-      await registerApi({
+      await registerUser({
         name: values.fullName,
         email: values.email,
         password: values.password,
         password_confirmation: values.passwordConfirmation,
       });
-      navigate("/login");
     } catch (error) {
       const status = error?.response?.status;
       const resp = error?.response?.data;
@@ -182,4 +181,3 @@ export function RegisterForm() {
     </form>
   );
 }
-

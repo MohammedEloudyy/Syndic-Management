@@ -5,10 +5,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Link, useNavigate } from "react-router-dom";
-import { loginApi } from "@/features/auth/api/login";
-import { meApi } from "@/features/auth/api/me";
-import { useAuthStore } from "@/features/auth/store/authStore";
+import { Link } from "react-router-dom";
+import { useAuth } from "@/features/auth/useAuth";
 
 const schema = z.object({
   email: z.string().email("Adresse email invalide"),
@@ -16,9 +14,8 @@ const schema = z.object({
   remember: z.boolean().optional(),
 });
 
-export function LoginForm() {
-  const navigate = useNavigate();
-  const setAuthenticated = useAuthStore((s) => s.setAuthenticated);
+export default function LoginForm() {
+  const { login } = useAuth();
 
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState("");
@@ -38,10 +35,7 @@ export function LoginForm() {
   const onSubmit = async (values) => {
     setServerError("");
     try {
-      await loginApi({ email: values.email, password: values.password });
-      await meApi();
-      setAuthenticated(true);
-      navigate("/dashboard");
+      await login({ email: values.email, password: values.password });
     } catch (error) {
       const status = error?.response?.status;
       const resp = error?.response?.data;
@@ -150,10 +144,9 @@ export function LoginForm() {
       </Button>
 
       <p className="text-center text-xs text-muted-foreground">
-        En vous connectant, vous acceptez nos conditions d'utilisation et notre politique de
+        En vous connectant, vous acceptez nos conditions d&apos;utilisation et notre politique de
         confidentialité.
       </p>
     </form>
   );
 }
-

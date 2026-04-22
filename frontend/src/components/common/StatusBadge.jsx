@@ -1,7 +1,7 @@
 import { CheckCircle2, Clock3, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export function StatusBadge({ status, className }) {
+export default function StatusBadge({ status, className }) {
   if (status === "occupé") {
     return (
       <span

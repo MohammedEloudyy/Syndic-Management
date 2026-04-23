@@ -17,9 +17,12 @@ class DepenseController extends Controller
     {
         $this->authorize('viewAny', Depense::class);
 
+        $validated = $request->validated();
+
         return $this->jsonPaginated(
-            $depenseService->paginate($request->validated()),
+            $depenseService->paginate($validated),
             DepenseResource::class,
+            ['stats' => $depenseService->stats($validated)]
         );
     }
 

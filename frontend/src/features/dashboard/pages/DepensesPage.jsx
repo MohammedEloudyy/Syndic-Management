@@ -18,6 +18,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { useResource } from "@/features/dashboard/hooks/useResource";
+import { useDebounce } from "@/hooks/useDebounce";
 import {
   createDepense,
   deleteDepense,
@@ -25,6 +26,7 @@ import {
   getImmeubles,
   updateDepense,
 } from "@/features/dashboard/api/dashboardApi";
+import Pagination from "@/components/common/Pagination";
 
 const schema = z.object({
   title: z.string().min(2, "Titre requis"),
@@ -52,12 +54,21 @@ function errorMessage(err) {
 }
 
 export default function DepensesPage() {
-  const depensesQ = useResource(() => getDepenses());
-  const immeublesQ = useResource(() => getImmeubles());
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [buildingFilter, setBuildingFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 500);
+
+  const depensesQ = useResource(getDepenses, { 
+    immeuble_id: buildingFilter === "all" ? undefined : buildingFilter,
+    categorie: categoryFilter === "all" ? undefined : categoryFilter,
+    search: debouncedSearch || undefined,
+    page 
+  });
+  const immeublesQ = useResource(getImmeubles);
 
   const immeubles = immeublesQ.data ?? [];
   const firstBuildingId = immeubles[0]?.id ?? "";
@@ -78,7 +89,7 @@ export default function DepensesPage() {
   const immeublesById = useMemo(() => new Map(immeubles.map((i) => [i.id, i])), [immeubles]);
 
   const rawItems = depensesQ.data ?? [];
-  const total = useMemo(() => rawItems.reduce((sum, d) => sum + d.amount, 0), [rawItems]);
+  const total = depensesQ.meta?.stats?.total ?? 0;
 
   const resetForm = (item) => {
     form.reset({
@@ -156,7 +167,7 @@ export default function DepensesPage() {
   }
 
   return (
-    <div className="pb-2">
+    <div className="pb-2 animate-fade-in">
       <div className="mb-5 flex items-start justify-between">
         <div>
           <h1 className="text-xl font-semibold">Gestion des dépenses</h1>
@@ -177,7 +188,7 @@ export default function DepensesPage() {
 
 
 
-      <Card className="mb-5">
+      <Card className="card-modern mb-5">
         <CardContent className="p-6">
           <div className="text-sm font-semibold text-muted-foreground">Total des dépenses</div>
           <div className="mt-2 text-3xl font-semibold">{total.toLocaleString()} MAD</div>
@@ -261,8 +272,8 @@ export default function DepensesPage() {
               </div>
 
               <div className="flex items-center gap-3">
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   disabled={isSubmitting}
                   variant="modern"
                   className="h-8 px-6"
@@ -288,95 +299,123 @@ export default function DepensesPage() {
         </Card>
       ) : (
         <>
-          <div className="mb-4 flex flex-wrap gap-3">
-            <select
-              className="h-9 w-full md:w-[200px] rounded-lg border border-input bg-background px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-              value={buildingFilter}
-              onChange={(e) => setBuildingFilter(e.target.value)}
-            >
-              <option value="all">Tous les immeubles</option>
-              {immeubles.map((i) => (
-                <option key={i.id} value={i.id}>
-                  {i.name}
-                </option>
-              ))}
-            </select>
+          <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="relative w-full md:max-w-[300px]">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Rechercher une dépense..."
+                className="pl-9 h-9 modern-input"
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
 
-            <select
-              className="h-9 w-full md:w-[150px] rounded-lg border border-input bg-background px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-            >
-              <option value="all">Toutes les catégories</option>
-              {categories.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
+            <div className="flex flex-wrap gap-3">
+              <select
+                className="modern-input h-9 w-full md:w-[200px] bg-background px-3 text-sm outline-none"
+                value={buildingFilter}
+                onChange={(e) => {
+                  setBuildingFilter(e.target.value);
+                  setPage(1);
+                }}
+              >
+                <option value="all">Tous les immeubles</option>
+                {immeubles.map((i) => (
+                  <option key={i.id} value={i.id}>
+                    {i.name}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                className="modern-input h-9 w-full md:w-[150px] bg-background px-3 text-sm outline-none"
+                value={categoryFilter}
+                onChange={(e) => {
+                  setCategoryFilter(e.target.value);
+                  setPage(1);
+                }}
+              >
+                <option value="all">Toutes les catégories</option>
+                {categories.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
-          <Card>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>TITRE</TableHead>
-                  <TableHead>IMMEUBLE</TableHead>
-                  <TableHead>CATÉGORIE</TableHead>
-                  <TableHead className="text-right">MONTANT</TableHead>
-                  <TableHead>DATE</TableHead>
-                  <TableHead className="w-[120px] text-right">ACTIONS</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {items.map((d) => {
-                  const building = immeublesById.get(d.buildingId);
-                  return (
-                    <TableRow key={d.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Receipt className="h-4 w-4 text-blue-700" />
-                          <div className="leading-tight">
-                            <div className="font-medium">{d.title}</div>
-                            <div className="text-xs text-muted-foreground">{d.description}</div>
+          <Card className="modern-table-container border-none shadow-sm">
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>TITRE</TableHead>
+                    <TableHead>IMMEUBLE</TableHead>
+                    <TableHead>CATÉGORIE</TableHead>
+                    <TableHead className="text-right">MONTANT</TableHead>
+                    <TableHead>DATE</TableHead>
+                    <TableHead className="w-[120px] text-right">ACTIONS</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {items.map((d) => {
+                    const building = immeublesById.get(d.buildingId);
+                    return (
+                      <TableRow key={d.id} className="modern-table-row border-b-slate-100/50">
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Receipt className="h-4 w-4 text-blue-700" />
+                            <div className="leading-tight">
+                              <div className="font-medium">{d.title}</div>
+                              <div className="text-xs text-muted-foreground">{d.description}</div>
+                            </div>
                           </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>{building?.name ?? "—"}</TableCell>
-                      <TableCell>
-                        <Badge variant={categoryVariant(d.category)} className="rounded-md">
-                          {d.category}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">{d.amount} MAD</TableCell>
-                      <TableCell>{d.date}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-3">
-                          <button
-                            type="button"
-                            className="text-blue-700 hover:text-blue-800"
-                            onClick={() => onEdit(d)}
-                            aria-label={`Modifier ${d.title}`}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </button>
-                          <button
-                            type="button"
-                            className="text-red-600 hover:text-red-700"
-                            onClick={() => onDelete(d.id)}
-                            aria-label={`Supprimer ${d.title}`}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+                        </TableCell>
+                        <TableCell>{building?.name ?? "—"}</TableCell>
+                        <TableCell>
+                          <Badge variant={categoryVariant(d.category)} className="rounded-md">
+                            {d.category}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">{d.amount} MAD</TableCell>
+                        <TableCell>{d.date}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-3">
+                            <button
+                              type="button"
+                              className="text-blue-700 hover:text-blue-800"
+                              onClick={() => onEdit(d)}
+                              aria-label={`Modifier ${d.title}`}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </button>
+                            <button
+                              type="button"
+                              className="text-red-600 hover:text-red-700"
+                              onClick={() => onDelete(d.id)}
+                              aria-label={`Supprimer ${d.title}`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
+          <Pagination 
+            currentPage={depensesQ.meta?.current_page || 1}
+            lastPage={depensesQ.meta?.last_page || 1}
+            onPageChange={setPage}
+            className="mt-2"
+          />
         </>
       )}
     </div>

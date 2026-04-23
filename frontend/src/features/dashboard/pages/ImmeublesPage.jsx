@@ -17,6 +17,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import Pagination from "@/components/common/Pagination";
 
 const schema = z.object({
   name: z.string().min(2, "Nom requis"),
@@ -38,8 +39,12 @@ export default function ImmeublesPage() {
   const [showForm, setShowForm] = useState(false);
   const [actionError, setActionError] = useState("");
   const [cityFilter, setCityFilter] = useState("all");
+  const [page, setPage] = useState(1);
 
-  const { data: rawItems, loading, error, refetch } = useResource(getImmeubles);
+  const { data: rawItems, meta, loading, error, refetch } = useResource(getImmeubles, { 
+    city: cityFilter === "all" ? undefined : cityFilter,
+    page 
+  });
 
   const cities = useMemo(() => {
     const set = new Set(rawItems.map(i => i.city).filter(Boolean));
@@ -130,8 +135,8 @@ export default function ImmeublesPage() {
 
   return (
     <div className="pb-2 p-6 space-y-6">
-      <PageHeader 
-        title="Immeubles" 
+      <PageHeader
+        title="Immeubles"
         description="Gérez vos immeubles et bâtiments"
         onAdd={() => {
           setEditingId(null);
@@ -230,9 +235,12 @@ export default function ImmeublesPage() {
 
       <div className="mb-4">
         <select
-          className="h-9 w-full md:w-[200px] rounded-lg border border-input bg-background px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+          className="modern-input h-9 w-full md:w-[200px] bg-background px-3 text-sm outline-none"
           value={cityFilter}
-          onChange={(e) => setCityFilter(e.target.value)}
+          onChange={(e) => {
+            setCityFilter(e.target.value);
+            setPage(1);
+          }}
         >
           <option value="all">Toutes les villes</option>
           {cities.map((c) => (
@@ -305,6 +313,13 @@ export default function ImmeublesPage() {
           </Table>
         </CardContent>
       </Card>
+
+      <Pagination 
+        currentPage={meta?.current_page || 1}
+        lastPage={meta?.last_page || 1}
+        onPageChange={setPage}
+        className="mt-2"
+      />
     </div>
   );
 }

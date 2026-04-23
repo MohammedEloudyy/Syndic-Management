@@ -26,6 +26,7 @@ class DepenseUpdateRequest extends FormRequest
             'titre' => ['sometimes', 'string', 'max:255'],
             'montant' => ['sometimes', 'numeric', 'min:0'],
             'date_depense' => ['sometimes', 'date'],
+            'categorie' => ['sometimes', 'string', 'max:50'],
         ];
     }
 }

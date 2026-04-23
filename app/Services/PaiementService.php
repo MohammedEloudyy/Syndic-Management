@@ -15,12 +15,16 @@ class PaiementService
      */
     public function paginate(array $validated): LengthAwarePaginator
     {
-        $perPage = min(100, max(1, (int) ($validated['per_page'] ?? 15)));
+        $perPage = min(100, max(1, (int) ($validated['per_page'] ?? 10)));
 
         $query = Paiement::query()
             ->where('user_id', auth()->id())
             ->with([
-                'resident' => static fn ($q) => $q->with(['appartement' => static fn ($a) => $a->with(['immeuble'])]),
+                'resident' => static fn ($q) => $q->select(['id', 'full_name', 'email', 'appartement_id'])
+                    ->with([
+                        'appartement' => static fn ($a) => $a->select(['id', 'number', 'immeuble_id'])
+                            ->with(['immeuble' => static fn ($i) => $i->select(['id', 'name', 'city'])]),
+                    ]),
             ]);
 
         if (! empty($validated['immeuble_id'])) {
@@ -117,5 +121,30 @@ class PaiementService
         $paid = $this->totalPaidForResident($resident);
 
         return max(0, $monthly - $paid);
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     * @return array<string, float>
+     */
+    public function stats(array $filters): array
+    {
+        $query = Paiement::query()->where('user_id', auth()->id());
+
+        if (! empty($filters['immeuble_id'])) {
+            $query->whereHas('resident.appartement', static function ($q) use ($filters): void {
+                $q->where('immeuble_id', $filters['immeuble_id']);
+            });
+        }
+
+        if (! empty($filters['resident_id'])) {
+            $query->where('resident_id', $filters['resident_id']);
+        }
+
+        return [
+            'total' => (float) (clone $query)->sum('montant'),
+            'paid' => (float) (clone $query)->where('statut', 'payé')->sum('montant'),
+            'pending' => (float) (clone $query)->whereIn('statut', ['en_attente', 'en attente'])->sum('montant'),
+        ];
     }
 }

@@ -2,14 +2,14 @@ import { useDashboardStats } from "@/features/dashboard/hooks/useDashboardStats"
 import { Building2, DoorOpen, Users, CreditCard, Wallet, Loader2, TrendingUp } from "lucide-react";
 import StatsCard from "@/features/dashboard/components/StatsCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer, 
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
   Legend,
   Cell,
   PieChart,
@@ -25,7 +25,7 @@ export default function DashboardPage() {
       <span>Chargement du tableau de bord...</span>
     </div>
   );
-  
+
   if (error && !stats) return (
     <div className="p-6">
       <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
@@ -58,43 +58,43 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        <StatsCard 
-          label="Immeubles"    
-          value={stats.total_immeubles}    
-          icon={Building2} 
+        <StatsCard
+          label="Immeubles"
+          value={stats.total_immeubles}
+          icon={Building2}
           description="Total des bâtiments gérés"
         />
-        <StatsCard 
-          label="Appartements" 
-          value={stats.total_appartements} 
-          icon={DoorOpen} 
+        <StatsCard
+          label="Appartements"
+          value={stats.total_appartements}
+          icon={DoorOpen}
           description={`${stats.total_residents} occupés`}
         />
-        <StatsCard 
-          label="Résidents"    
-          value={stats.total_residents}    
-          icon={Users} 
+        <StatsCard
+          label="Résidents"
+          value={stats.total_residents}
+          icon={Users}
           description="Total des copropriétaires"
         />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <StatsCard 
-          label="Total Recettes"     
-          value={`${stats.total_paiements.toLocaleString()} MAD`} 
-          icon={CreditCard} 
+        <StatsCard
+          label="Total Recettes"
+          value={`${stats.total_paiements.toLocaleString()} MAD`}
+          icon={CreditCard}
           className="bg-emerald-50 border-emerald-100"
         />
-        <StatsCard 
-          label="Total Dépenses"     
-          value={`${stats.total_depenses.toLocaleString()} MAD`} 
-          icon={Wallet} 
+        <StatsCard
+          label="Total Dépenses"
+          value={`${stats.total_depenses.toLocaleString()} MAD`}
+          icon={Wallet}
           className="bg-orange-50 border-orange-100"
         />
-        <StatsCard 
-          label="Balance Net"     
-          value={`${balance.toLocaleString()} MAD`} 
-          icon={TrendingUp} 
+        <StatsCard
+          label="Balance Net"
+          value={`${balance.toLocaleString()} MAD`}
+          icon={TrendingUp}
           className={balance >= 0 ? "bg-blue-50 border-blue-100" : "bg-red-50 border-red-100"}
         />
       </div>
@@ -109,19 +109,19 @@ export default function DashboardPage() {
               <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={100}>
                 <BarChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                  <XAxis 
-                    dataKey="name" 
-                    axisLine={false} 
-                    tickLine={false} 
+                  <XAxis
+                    dataKey="name"
+                    axisLine={false}
+                    tickLine={false}
                     tick={{ fill: '#888888', fontSize: 12 }}
                   />
-                  <YAxis 
-                    axisLine={false} 
-                    tickLine={false} 
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
                     tick={{ fill: '#888888', fontSize: 12 }}
                     tickFormatter={(value) => `${value} MAD`}
                   />
-                  <Tooltip 
+                  <Tooltip
                     cursor={{ fill: '#f8f8f8' }}
                     contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                   />
@@ -134,7 +134,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
-      
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="shadow-sm lg:col-span-1">
           <CardHeader>
@@ -156,24 +156,24 @@ export default function DashboardPage() {
                     stroke="none"
                   >
                     {(stats.payment_status_stats || []).map((entry, index) => (
-                      <Cell 
-                        key={`cell-${index}`} 
-                        fill={[ '#10b981', '#3b82f6', '#f59e0b' ][index % 3]} 
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={['#10b981', '#3b82f6', '#f59e0b'][index % 3]}
                       />
                     ))}
                   </Pie>
-                  <Tooltip 
+                  <Tooltip
                     contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                   />
                 </PieChart>
               </ResponsiveContainer>
-              
+
               <div className="w-full mt-4 space-y-2">
                 {(stats.payment_status_stats || []).map((entry, index) => {
                   const total = (stats.payment_status_stats || []).reduce((acc, curr) => acc + curr.value, 0);
                   const percentage = total > 0 ? Math.round((entry.value / total) * 100) : 0;
                   const colors = ['#10b981', '#3b82f6', '#f59e0b'];
-                  
+
                   return (
                     <div key={entry.name} className="flex items-center justify-between text-sm">
                       <div className="flex items-center gap-2">

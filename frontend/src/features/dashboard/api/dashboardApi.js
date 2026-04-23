@@ -34,7 +34,7 @@ const mapDepenseFromApi = (item) => ({
   title: item.titre,
   amount: Number(item.montant ?? 0),
   date: item.date_depense,
-  category: "Autres",
+  category: item.categorie ?? "Autres",
   description: "",
 });
 
@@ -67,6 +67,7 @@ const toDepensePayload = (payload) => ({
   titre: payload.title ?? payload.titre,
   montant: payload.amount ?? payload.montant,
   date_depense: payload.date ?? payload.date_depense,
+  categorie: payload.category ?? payload.categorie,
 });
 
 // ── Stats ──────────────────────────────────────────────────

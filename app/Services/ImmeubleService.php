@@ -16,7 +16,7 @@ class ImmeubleService
      */
     public function paginate(array $validated): LengthAwarePaginator
     {
-        $perPage = min(100, max(1, (int) ($validated['per_page'] ?? 15)));
+        $perPage = min(100, max(1, (int) ($validated['per_page'] ?? 10)));
 
         $query = Immeuble::query()
             ->where('user_id', auth()->id());

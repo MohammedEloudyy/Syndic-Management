@@ -12,19 +12,19 @@ abstract class Controller
     /**
      * @param  class-string<\Illuminate\Http\Resources\Json\JsonResource>  $resourceClass
      */
-    protected function jsonPaginated(LengthAwarePaginator $paginator, string $resourceClass): JsonResponse
+    protected function jsonPaginated(LengthAwarePaginator $paginator, string $resourceClass, array $extra = []): JsonResponse
     {
         return response()->json([
             'data' => $paginator->getCollection()
                 ->map(static fn ($model) => (new $resourceClass($model))->resolve())
                 ->values()
                 ->all(),
-            'meta' => [
+            'meta' => array_merge([
                 'current_page' => $paginator->currentPage(),
                 'last_page' => $paginator->lastPage(),
                 'per_page' => $paginator->perPage(),
                 'total' => $paginator->total(),
-            ],
+            ], $extra),
         ]);
     }
 }

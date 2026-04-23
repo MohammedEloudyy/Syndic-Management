@@ -18,6 +18,7 @@ class Depense extends Model
         'titre',
         'montant',
         'date_depense',
+        'categorie',
     ];
 
     protected function casts(): array

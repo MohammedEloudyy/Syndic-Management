@@ -26,6 +26,7 @@ class DepenseStoreRequest extends FormRequest
             'titre' => ['required', 'string', 'max:255'],
             'montant' => ['required', 'numeric', 'min:0'],
             'date_depense' => ['required', 'date'],
+            'categorie' => ['required', 'string', 'max:50'],
         ];
     }
 }

@@ -17,9 +17,12 @@ class PaiementController extends Controller
     {
         $this->authorize('viewAny', Paiement::class);
 
+        $validated = $request->validated();
+
         return $this->jsonPaginated(
-            $paiementService->paginate($request->validated()),
+            $paiementService->paginate($validated),
             PaiementResource::class,
+            ['stats' => $paiementService->stats($validated)]
         );
     }
 

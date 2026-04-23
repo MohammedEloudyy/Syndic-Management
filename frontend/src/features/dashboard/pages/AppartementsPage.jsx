@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Home, Pencil, Trash2, Loader2, Search } from "lucide-react";
-import  PageHeader  from "@/components/common/PageHeader";
+import PageHeader from "@/components/common/PageHeader";
 import StatusBadge from "@/components/common/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,6 +18,7 @@ import {
   getImmeubles,
   updateAppartement,
 } from "@/features/dashboard/api/dashboardApi";
+import Pagination from "@/components/common/Pagination";
 
 const schema = z.object({
   number: z.string().min(1, "Numéro requis"),
@@ -37,12 +38,18 @@ function errorMessage(err) {
 }
 
 export default function AppartementsPage() {
-  const immeublesQ = useResource(() => getImmeubles());
-  const appartementsQ = useResource(() => getAppartements());
   const [editingId, setEditingId] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [buildingFilter, setBuildingFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [page, setPage] = useState(1);
+
+  const immeublesQ = useResource(getImmeubles);
+  const appartementsQ = useResource(getAppartements, {
+    immeuble_id: buildingFilter === "all" ? undefined : buildingFilter,
+    status: statusFilter === "all" ? undefined : statusFilter,
+    page
+  });
 
   const immeubles = immeublesQ.data ?? [];
   const firstBuildingId = immeubles[0]?.id ?? "";
@@ -138,7 +145,7 @@ export default function AppartementsPage() {
   }
 
   return (
-    <div className="pb-2">
+    <div className="pb-2 animate-fade-in">
       <PageHeader
         title="Gestion des appartements"
         description="Gérez tous vos appartements"
@@ -251,7 +258,10 @@ export default function AppartementsPage() {
         <select
           className="h-9 w-full md:w-[200px] rounded-lg border border-input bg-background px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
           value={buildingFilter}
-          onChange={(e) => setBuildingFilter(e.target.value)}
+          onChange={(e) => {
+            setBuildingFilter(e.target.value);
+            setPage(1);
+          }}
         >
           <option value="all">Tous les immeubles</option>
           {immeubles.map((b) => (
@@ -264,7 +274,10 @@ export default function AppartementsPage() {
         <select
           className="h-9 w-full md:w-[150px] rounded-lg border border-input bg-background px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
+          onChange={(e) => {
+            setStatusFilter(e.target.value);
+            setPage(1);
+          }}
         >
           <option value="all">Tous les statuts</option>
           <option value="occupé">Occupé</option>
@@ -331,6 +344,13 @@ export default function AppartementsPage() {
           </Table>
         </CardContent>
       </Card>
+
+      <Pagination 
+        currentPage={appartementsQ.meta?.current_page || 1}
+        lastPage={appartementsQ.meta?.last_page || 1}
+        onPageChange={setPage}
+        className="mt-2"
+      />
     </div>
   );
 }

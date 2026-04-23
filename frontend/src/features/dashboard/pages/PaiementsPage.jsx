@@ -11,13 +11,16 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { useResource } from "@/features/dashboard/hooks/useResource";
+import { useDebounce } from "@/hooks/useDebounce";
 import {
   createPaiement,
   getAppartements,
   getPaiements,
   getResidents,
   updatePaiement,
+  deletePaiement,
 } from "@/features/dashboard/api/dashboardApi";
+import Pagination from "@/components/common/Pagination";
 
 const schema = z.object({
   residentId: z.string().min(1, "Résident requis"),
@@ -36,13 +39,23 @@ function errorMessage(err) {
 }
 
 export default function PaiementsPage() {
-  const paiementsQ = useResource(() => getPaiements());
-  const residentsQ = useResource(() => getResidents());
-  const appartementsQ = useResource(() => getAppartements());
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [residentFilter, setResidentFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 500);
+
+  const paiementsQ = useResource(getPaiements, { 
+    statut: statusFilter === "all" ? undefined : statusFilter,
+    resident_id: residentFilter === "all" ? undefined : residentFilter,
+    search: debouncedSearch || undefined,
+    page 
+  });
+
+  const residentsQ = useResource(getResidents);
+  const appartementsQ = useResource(getAppartements);
 
   const residents = residentsQ.data ?? [];
   const appartements = appartementsQ.data ?? [];
@@ -55,23 +68,11 @@ export default function PaiementsPage() {
     [appartements],
   );
 
-  const totalAmount = useMemo(() => items.reduce((sum, p) => sum + p.amount, 0), [items]);
-  const amountPaid = useMemo(
-    () => items.filter((p) => p.status === "payé").reduce((sum, p) => sum + p.amount, 0),
-    [items],
-  );
-  const amountPending = useMemo(
-    () => items.filter((p) => p.status === "en_attente" || p.status === "en attente").reduce((sum, p) => sum + p.amount, 0),
-    [items],
-  );
+  const serverStats = paiementsQ.meta?.stats || { total: 0, paid: 0, pending: 0 };
+  const totalAmount = serverStats.total;
+  const amountPaid = serverStats.paid;
+  const amountPending = serverStats.pending;
 
-  const filtered = useMemo(() => {
-    return items.filter((p) => {
-      const matchStatus = statusFilter === "all" ? true : p.status === statusFilter;
-      const matchResident = residentFilter === "all" ? true : p.residentId === residentFilter;
-      return matchStatus && matchResident;
-    });
-  }, [items, residentFilter, statusFilter]);
 
   const form = useForm({
     resolver: zodResolver(schema),
@@ -165,7 +166,7 @@ export default function PaiementsPage() {
   }
 
   return (
-    <div className="pb-2">
+    <div className="pb-2 animate-fade-in">
       <div className="mb-5 flex items-start justify-between">
         <div>
           <h1 className="text-xl font-semibold">Gestion des paiements</h1>
@@ -184,8 +185,6 @@ export default function PaiementsPage() {
           + Ajouter un paiement
         </Button>
       </div>
-
-
 
       {showForm ? (
         <Card className="mb-5">
@@ -260,8 +259,8 @@ export default function PaiementsPage() {
                 >
                   Annuler
                 </Button>
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   disabled={isSubmitting}
                   variant="modern"
                 >
@@ -274,41 +273,62 @@ export default function PaiementsPage() {
         </Card>
       ) : (
         <>
-          <div className="mb-5 grid gap-4 md:grid-cols-3">
-            <StatsCard value={`${totalAmount}`} label="Total des paiements" />
-            <StatsCard value={`${amountPaid}`} label="Montant payé" />
-            <StatsCard value={`${amountPending}`} label="En attente" />
+          <div className="mb-5 grid gap-4 md:grid-cols-3 animate-slide-up">
+            <StatsCard value={`${totalAmount}`} label="Total des paiements" className="card-modern hover-lift" />
+            <StatsCard value={`${amountPaid}`} label="Montant payé" className="card-modern hover-lift" />
+            <StatsCard value={`${amountPending}`} label="En attente" className="card-modern hover-lift" />
           </div>
 
           <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="w-full md:max-w-[250px]">
-              <select
-                className="h-9 w-full rounded-lg border border-input bg-background px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-                value={residentFilter}
-                onChange={(e) => setResidentFilter(e.target.value)}
-              >
-                <option value="all">Tous les résidents</option>
-                {residents.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.fullName}
-                  </option>
-                ))}
-              </select>
+            <div className="relative w-full md:max-w-[300px]">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Rechercher un paiement..."
+                className="pl-9 h-9 modern-input"
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+              />
             </div>
 
-            <select
-              className="h-9 w-full md:w-[200px] rounded-lg border border-input bg-background px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-            >
-              <option value="all">Tous les statuts</option>
-              <option value="payé">payé</option>
-              <option value="en_attente">en attente</option>
-              <option value="en_retard">en retard</option>
-            </select>
+            <div className="flex flex-col gap-3 md:flex-row md:items-center">
+              <div className="w-full md:min-w-[200px]">
+                <select
+                  className="modern-input h-9 w-full bg-background px-3 text-sm outline-none"
+                  value={residentFilter}
+                  onChange={(e) => {
+                    setResidentFilter(e.target.value);
+                    setPage(1);
+                  }}
+                >
+                  <option value="all">Tous les résidents</option>
+                  {residents.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.fullName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <select
+                className="modern-input h-9 w-full md:w-[180px] bg-background px-3 text-sm outline-none"
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setPage(1);
+                }}
+              >
+                <option value="all">Tous les statuts</option>
+                <option value="payé">payé</option>
+                <option value="en_attente">en attente</option>
+                <option value="en_retard">en retard</option>
+              </select>
+            </div>
           </div>
 
-          <Card>
+          <Card className="modern-table-container border-none shadow-sm">
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
@@ -323,12 +343,12 @@ export default function PaiementsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.map((p) => {
+                  {items.map((p) => {
                     const resident = residentsById.get(p.residentId);
                     const apt = apartmentsById.get(p.apartmentId);
 
                     return (
-                      <TableRow key={p.id}>
+                      <TableRow key={p.id} className="modern-table-row border-b-slate-100/50">
                         <TableCell>{resident?.fullName ?? "—"}</TableCell>
                         <TableCell>{apt?.number ?? "—"}</TableCell>
                         <TableCell>{p.type}</TableCell>
@@ -338,9 +358,9 @@ export default function PaiementsPage() {
                           <div className="flex items-center gap-2">
                             <StatusBadge status={p.status} />
                             {p.status === "en_attente" || p.status === "en attente" ? (
-                              <Button 
-                                size="xs" 
-                                type="button" 
+                              <Button
+                                size="xs"
+                                type="button"
                                 onClick={() => onPay(p.id)}
                                 variant="outline"
                                 className="h-6 rounded-md border-blue-200 bg-blue-50/50 text-[10px] font-bold uppercase tracking-wider text-blue-600 hover:bg-blue-600 hover:text-white transition-all duration-300"
@@ -377,6 +397,13 @@ export default function PaiementsPage() {
               </Table>
             </CardContent>
           </Card>
+
+          <Pagination 
+            currentPage={paiementsQ.meta?.current_page || 1}
+            lastPage={paiementsQ.meta?.last_page || 1}
+            onPageChange={setPage}
+            className="mt-2"
+          />
         </>
       )}
     </div>

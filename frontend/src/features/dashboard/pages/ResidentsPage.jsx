@@ -10,6 +10,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { useResource } from "@/features/dashboard/hooks/useResource";
+import { useDebounce } from "@/hooks/useDebounce";
 import {
   createResident,
   deleteResident,
@@ -18,6 +19,7 @@ import {
   getResidents,
   updateResident,
 } from "@/features/dashboard/api/dashboardApi";
+import Pagination from "@/components/common/Pagination";
 
 const schema = z.object({
   fullName: z.string().min(2, "Nom requis"),
@@ -36,12 +38,20 @@ function errorMessage(err) {
 }
 
 export default function ResidentsPage() {
-  const residentsQ = useResource(() => getResidents());
-  const appartementsQ = useResource(() => getAppartements());
-  const immeublesQ = useResource(() => getImmeubles());
   const [editingId, setEditingId] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [buildingFilter, setBuildingFilter] = useState("all");
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 500);
+
+  const residentsQ = useResource(getResidents, {
+    immeuble_id: buildingFilter === "all" ? undefined : buildingFilter,
+    search: debouncedSearch || undefined,
+    page
+  });
+  const appartementsQ = useResource(getAppartements);
+  const immeublesQ = useResource(getImmeubles);
 
   const appartements = appartementsQ.data ?? [];
   const firstAptId = appartements[0]?.id ?? "";
@@ -143,7 +153,7 @@ export default function ResidentsPage() {
   }
 
   return (
-    <div className="pb-2">
+    <div className="pb-2 animate-fade-in">
       <PageHeader
         title="Gestion des résidents"
         description="Gérez tous vos résidents"
@@ -207,11 +217,11 @@ export default function ResidentsPage() {
 
                 <div className="space-y-2 md:col-span-2">
                   <label className="text-sm font-medium text-foreground">Date d&apos;entrée</label>
-                    <Input
-                      type="date"
-                      {...form.register("entryDate")}
-                      aria-invalid={!!form.formState.errors.entryDate}
-                    />
+                  <Input
+                    type="date"
+                    {...form.register("entryDate")}
+                    aria-invalid={!!form.formState.errors.entryDate}
+                  />
                 </div>
               </div>
 
@@ -237,20 +247,36 @@ export default function ResidentsPage() {
         </Card>
       ) : null}
 
-      <div className="mb-4">
-        <select
-          className="h-9 w-full md:w-[200px] rounded-lg border border-input bg-background px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-          value={buildingFilter}
-          onChange={(e) => setBuildingFilter(e.target.value)}
-        >
-          <option value="all">Tous les immeubles</option>
-          {(immeublesQ.data ?? []).map((b) => (
-            <option key={b.id} value={b.id}>
-              {b.name}
-            </option>
-          ))}
-        </select>
-      </div>
+          <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="relative w-full md:max-w-[300px]">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Rechercher un résident..."
+                className="pl-9 h-9 modern-input"
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+
+            <select
+              className="modern-input h-9 w-full md:w-[200px] bg-background px-3 text-sm outline-none"
+              value={buildingFilter}
+              onChange={(e) => {
+                setBuildingFilter(e.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="all">Tous les immeubles</option>
+              {(immeublesQ.data ?? []).map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
       <Card>
         <CardContent className="p-0">
@@ -319,6 +345,13 @@ export default function ResidentsPage() {
           </Table>
         </CardContent>
       </Card>
+
+      <Pagination 
+        currentPage={residentsQ.meta?.current_page || 1}
+        lastPage={residentsQ.meta?.last_page || 1}
+        onPageChange={setPage}
+        className="mt-2"
+      />
     </div>
   );
 }

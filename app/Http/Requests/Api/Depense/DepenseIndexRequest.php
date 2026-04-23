@@ -28,6 +28,7 @@ class DepenseIndexRequest extends FormRequest
             ],
             'date_from' => ['sometimes', 'date'],
             'date_to' => ['sometimes', 'date', 'after_or_equal:date_from'],
+            'categorie' => ['sometimes', 'string', 'max:50'],
         ];
     }
 }

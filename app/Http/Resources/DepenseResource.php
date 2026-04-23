@@ -19,6 +19,7 @@ class DepenseResource extends JsonResource
             'titre' => $this->titre,
             'montant' => (float) $this->montant,
             'date_depense' => $this->date_depense?->toDateString(),
+            'categorie' => $this->categorie,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
             'immeuble' => ImmeubleResource::make($this->whenLoaded('immeuble')),

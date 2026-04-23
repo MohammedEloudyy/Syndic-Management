@@ -14,7 +14,7 @@ class DepenseService
      */
     public function paginate(array $validated): LengthAwarePaginator
     {
-        $perPage = min(100, max(1, (int) ($validated['per_page'] ?? 15)));
+        $perPage = min(100, max(1, (int) ($validated['per_page'] ?? 10)));
 
         $query = Depense::query()
             ->where('user_id', auth()->id())
@@ -22,6 +22,10 @@ class DepenseService
 
         if (! empty($validated['immeuble_id'])) {
             $query->where('immeuble_id', $validated['immeuble_id']);
+        }
+
+        if (! empty($validated['categorie'])) {
+            $query->where('categorie', $validated['categorie']);
         }
 
         if (! empty($validated['search'])) {
@@ -41,6 +45,27 @@ class DepenseService
     }
 
     /**
+     * @param  array<string, mixed>  $filters
+     * @return array<string, float>
+     */
+    public function stats(array $filters): array
+    {
+        $query = Depense::query()->where('user_id', auth()->id());
+
+        if (! empty($filters['immeuble_id'])) {
+            $query->where('immeuble_id', $filters['immeuble_id']);
+        }
+
+        if (! empty($filters['categorie'])) {
+            $query->where('categorie', $filters['categorie']);
+        }
+
+        return [
+            'total' => (float) $query->sum('montant'),
+        ];
+    }
+
+    /**
      * @param  array<string, mixed>  $validated
      */
     public function create(array $validated): Depense
@@ -53,6 +78,7 @@ class DepenseService
                 'titre' => $validated['titre'],
                 'montant' => $validated['montant'],
                 'date_depense' => $validated['date_depense'],
+                'categorie' => $validated['categorie'] ?? 'Autres',
             ]);
         });
     }
@@ -75,6 +101,9 @@ class DepenseService
             }
             if (array_key_exists('date_depense', $validated)) {
                 $data['date_depense'] = $validated['date_depense'];
+            }
+            if (array_key_exists('categorie', $validated)) {
+                $data['categorie'] = $validated['categorie'];
             }
 
             if ($data !== []) {

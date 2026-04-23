@@ -41,7 +41,7 @@ export default function StatusBadge({ status, className }) {
     );
   }
 
-  if (status === "en attente") {
+  if (status === "en attente" || status === "en_attente") {
     return (
       <span
         className={cn(
@@ -55,7 +55,7 @@ export default function StatusBadge({ status, className }) {
     );
   }
 
-  if (status === "en retard") {
+  if (status === "en retard" || status === "en_retard") {
     return (
       <span
         className={cn(

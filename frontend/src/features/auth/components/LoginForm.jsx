@@ -138,7 +138,12 @@ export default function LoginForm() {
         </div>
       ) : null}
 
-      <Button type="submit" className="w-full" disabled={isSubmitting}>
+      <Button 
+        type="submit" 
+        className="w-full h-11" 
+        variant="modern"
+        disabled={isSubmitting}
+      >
         {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
         Se connecter
       </Button>

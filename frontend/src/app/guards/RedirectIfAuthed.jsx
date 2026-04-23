@@ -15,7 +15,7 @@ export default function RedirectIfAuthed() {
   
   // Determine auth state from user value
   const isLoading = user === undefined;
-  const isAuthenticated = user !== null && user !== undefined;
+  const isAuthenticated = !!(user && typeof user === 'object' && Object.keys(user).length > 0);
   
   // State 1: Loading - Show splash while checking
   if (isLoading) {

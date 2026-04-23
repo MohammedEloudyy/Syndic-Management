@@ -1,16 +1,5 @@
 import { axiosClient } from "@/api/axios";
 
-const PAYMENT_STATUS_API_TO_UI = {
-  payé: "payé",
-  en_attente: "en attente",
-};
-
-const PAYMENT_STATUS_UI_TO_API = {
-  payé: "payé",
-  "en attente": "en_attente",
-  en_attente: "en_attente",
-};
-
 const mapImmeubleFromApi = (item) => ({
   ...item,
   apartmentCount: item.apartment_count ?? 0,
@@ -35,7 +24,7 @@ const mapPaiementFromApi = (item) => ({
   apartmentId: item.resident?.appartement_id ?? null,
   amount: Number(item.montant ?? 0),
   limitDate: item.date_paiement,
-  status: PAYMENT_STATUS_API_TO_UI[item.statut] ?? item.statut,
+  status: item.statut,
   type: "Charges mensuelles",
 });
 
@@ -70,7 +59,7 @@ const toPaiementPayload = (payload) => ({
   resident_id: payload.residentId ?? payload.resident_id,
   montant: payload.amount ?? payload.montant,
   date_paiement: payload.limitDate ?? payload.date_paiement,
-  statut: PAYMENT_STATUS_UI_TO_API[payload.status ?? payload.statut] ?? payload.statut,
+  statut: payload.status ?? payload.statut,
 });
 
 const toDepensePayload = (payload) => ({
@@ -83,6 +72,9 @@ const toDepensePayload = (payload) => ({
 // ── Stats ──────────────────────────────────────────────────
 export const getDashboardStats = () =>
   axiosClient.get("/dashboard/stats").then((r) => r.data.data);
+
+export const getPublicStats = () =>
+  axiosClient.get("/public/stats").then((r) => r.data.data);
 
 // ── Immeubles ──────────────────────────────────────────────
 export const getImmeubles = (params = {}) =>

@@ -25,7 +25,7 @@ class PaiementUpdateRequest extends FormRequest
             ],
             'montant' => ['sometimes', 'numeric', 'min:0'],
             'date_paiement' => ['sometimes', 'date'],
-            'statut' => ['sometimes', Rule::in(['payé', 'en_attente'])],
+            'statut' => ['sometimes', Rule::in(['payé', 'en_attente', 'en_retard'])],
         ];
     }
 }

@@ -1,71 +1,310 @@
-import { getImmeubles, deleteImmeuble } from "@/features/dashboard/api/dashboardApi";
+import { useState, useMemo } from "react";
+import { Building2, Pencil, Trash2, Loader2, Search } from "lucide-react";
+import {
+  getImmeubles,
+  deleteImmeuble,
+  createImmeuble,
+  updateImmeuble,
+} from "@/features/dashboard/api/dashboardApi";
 import { useResource } from "@/features/dashboard/hooks/useResource";
 import PageHeader from "@/components/common/PageHeader";
 import StatusBadge from "@/components/common/StatusBadge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
+
+const schema = z.object({
+  name: z.string().min(2, "Nom requis"),
+  address: z.string().min(5, "Adresse requise"),
+  city: z.string().min(2, "Ville requise"),
+  apartmentCount: z.coerce.number().min(0, "Nombre d'appartements requis"),
+});
+
+function errorMessage(err) {
+  return (
+    err?.response?.data?.message ??
+    err?.message ??
+    "Une erreur est survenue. Réessayez."
+  );
+}
 
 export default function ImmeublesPage() {
-  const { data: immeubles, loading, error, refetch } = useResource(getImmeubles);
+  const [editingId, setEditingId] = useState(null);
+  const [showForm, setShowForm] = useState(false);
+  const [actionError, setActionError] = useState("");
+  const [cityFilter, setCityFilter] = useState("all");
 
-  async function handleDelete(id) {
+  const { data: rawItems, loading, error, refetch } = useResource(getImmeubles);
+
+  const cities = useMemo(() => {
+    const set = new Set(rawItems.map(i => i.city).filter(Boolean));
+    return Array.from(set).sort();
+  }, [rawItems]);
+
+  const immeubles = useMemo(() => {
+    if (cityFilter === "all") return rawItems;
+    return rawItems.filter(i => i.city === cityFilter);
+  }, [rawItems, cityFilter]);
+
+  const form = useForm({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      name: "",
+      address: "",
+      city: "",
+      apartmentCount: 0,
+    },
+  });
+
+  const resetForm = (item) => {
+    form.reset({
+      name: item?.name ?? "",
+      address: item?.address ?? "",
+      city: item?.city ?? "",
+      apartmentCount: item?.apartmentCount ?? 0,
+    });
+  };
+
+  const onEdit = (item) => {
+    setEditingId(item.id);
+    setShowForm(true);
+    resetForm(item);
+  };
+
+  const handleDelete = async (id) => {
     if (!window.confirm("Supprimer cet immeuble ?")) return;
+    setActionError("");
     try {
       await deleteImmeuble(id);
+      toast.success("Immeuble supprimé avec succès");
       refetch();
-    } catch {
-      window.alert("Erreur lors de la suppression.");
+    } catch (e) {
+      toast.error(errorMessage(e));
     }
-  }
+  };
 
-  if (loading) return <p className="p-6 text-sm text-gray-500">Chargement...</p>;
-  if (error) return <p className="p-6 text-sm text-red-500">Erreur de chargement.</p>;
+  const onSubmit = async (values) => {
+    setActionError("");
+    // Map frontend field to backend field
+    const payload = {
+      ...values,
+      apartment_count: values.apartmentCount
+    };
+
+    try {
+      if (editingId) {
+        await updateImmeuble(editingId, payload);
+        toast.success("Immeuble modifié avec succès");
+      } else {
+        await createImmeuble(payload);
+        toast.success("Immeuble ajouté avec succès");
+      }
+      setEditingId(null);
+      setShowForm(false);
+      resetForm(null);
+      refetch();
+    } catch (e) {
+      toast.error(errorMessage(e));
+    }
+  };
+
+  const isSubmitting = form.formState.isSubmitting;
+
+  if (loading && !immeubles) return (
+    <div className="flex min-h-[240px] items-center justify-center gap-2 text-muted-foreground">
+      <Loader2 className="h-5 w-5 animate-spin" />
+      <span>Chargement des immeubles…</span>
+    </div>
+  );
+
+  if (error && !immeubles) return (
+    <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+      {errorMessage(error)}
+    </div>
+  );
 
   return (
-    <div className="space-y-6 p-6">
-      <PageHeader title="Immeubles" />
+    <div className="pb-2 p-6 space-y-6">
+      <PageHeader 
+        title="Immeubles" 
+        description="Gérez vos immeubles et bâtiments"
+        onAdd={() => {
+          setEditingId(null);
+          setShowForm((v) => !v);
+          resetForm(null);
+        }}
+      />
 
-      <div className="overflow-x-auto rounded-lg border border-gray-200">
-        <table className="min-w-full text-sm">
-          <thead className="bg-gray-50 text-xs uppercase text-gray-600">
-            <tr>
-              <th className="px-4 py-3 text-left">Nom</th>
-              <th className="px-4 py-3 text-left">Adresse</th>
-              <th className="px-4 py-3 text-left">Ville</th>
-              <th className="px-4 py-3 text-left">Statut</th>
-              <th className="px-4 py-3 text-left">Appartements</th>
-              <th className="px-4 py-3 text-left">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {immeubles.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-gray-400">
-                  Aucun immeuble trouve.
-                </td>
-              </tr>
-            )}
+      {actionError ? (
+        <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+          {actionError}
+        </div>
+      ) : null}
 
-            {immeubles.map((immeuble) => (
-              <tr key={immeuble.id} className="hover:bg-gray-50">
-                <td className="px-4 py-3 font-medium">{immeuble.name}</td>
-                <td className="px-4 py-3 text-gray-500">{immeuble.address ?? "-"}</td>
-                <td className="px-4 py-3 text-gray-500">{immeuble.city ?? "-"}</td>
-                <td className="px-4 py-3">
-                  <StatusBadge status={Number(immeuble.apartment_count) > 0 ? "occupé" : "vacant"} />
-                </td>
-                <td className="px-4 py-3">{immeuble.apartment_count ?? "-"}</td>
-                <td className="px-4 py-3">
-                  <button
-                    onClick={() => handleDelete(immeuble.id)}
-                    className="text-xs text-red-500 hover:text-red-700"
-                  >
-                    Supprimer
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {showForm ? (
+        <Card className="mb-5">
+          <CardContent className="p-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+              <div className="text-sm font-semibold text-muted-foreground">
+                {editingId ? "Modifier l'immeuble" : "Nouvel immeuble"}
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Nom</label>
+                  <Input
+                    placeholder="Résidence Al Amal"
+                    {...form.register("name")}
+                    aria-invalid={!!form.formState.errors.name}
+                  />
+                  {form.formState.errors.name && (
+                    <p className="text-xs text-red-500">{form.formState.errors.name.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Ville</label>
+                  <Input
+                    placeholder="Casablanca"
+                    {...form.register("city")}
+                    aria-invalid={!!form.formState.errors.city}
+                  />
+                  {form.formState.errors.city && (
+                    <p className="text-xs text-red-500">{form.formState.errors.city.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <label className="text-sm font-medium text-foreground">Adresse</label>
+                  <Input
+                    placeholder="123 Rue de la Liberté"
+                    {...form.register("address")}
+                    aria-invalid={!!form.formState.errors.address}
+                  />
+                  {form.formState.errors.address && (
+                    <p className="text-xs text-red-500">{form.formState.errors.address.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Nombre d'appartements</label>
+                  <Input
+                    type="number"
+                    placeholder="10"
+                    {...form.register("apartmentCount")}
+                    aria-invalid={!!form.formState.errors.apartmentCount}
+                  />
+                  {form.formState.errors.apartmentCount && (
+                    <p className="text-xs text-red-500">{form.formState.errors.apartmentCount.message}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Button type="submit" variant="modern" className="px-6 h-8" disabled={isSubmitting}>
+                  {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  {editingId ? "Enregistrer les modifications" : "Confirmer l'ajout"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={isSubmitting}
+                  onClick={() => {
+                    setEditingId(null);
+                    setShowForm(false);
+                    resetForm(null);
+                  }}
+                >
+                  Annuler
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      <div className="mb-4">
+        <select
+          className="h-9 w-full md:w-[200px] rounded-lg border border-input bg-background px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+          value={cityFilter}
+          onChange={(e) => setCityFilter(e.target.value)}
+        >
+          <option value="all">Toutes les villes</option>
+          {cities.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
       </div>
+
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>NOM</TableHead>
+                <TableHead>ADRESSE</TableHead>
+                <TableHead>VILLE</TableHead>
+                <TableHead>STATUT</TableHead>
+                <TableHead className="text-right">APPARTEMENTS</TableHead>
+                <TableHead className="w-[120px] text-right">ACTIONS</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {immeubles && immeubles.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="px-4 py-6 text-center text-gray-400">
+                    Aucun immeuble trouvé.
+                  </TableCell>
+                </TableRow>
+              )}
+
+              {immeubles && immeubles.map((immeuble) => (
+                <TableRow key={immeuble.id} className="hover:bg-gray-50">
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4 text-blue-700" />
+                      <span className="font-medium">{immeuble.name}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-gray-500 text-xs">{immeuble.address ?? "-"}</TableCell>
+                  <TableCell className="text-gray-500 text-xs">{immeuble.city ?? "-"}</TableCell>
+                  <TableCell>
+                    <StatusBadge status={Number(immeuble.apartmentCount) > 0 ? "occupé" : "vacant"} />
+                  </TableCell>
+                  <TableCell className="text-right">{immeuble.apartmentCount ?? "0"}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-3">
+                      <button
+                        type="button"
+                        className="text-blue-700 hover:text-blue-800"
+                        onClick={() => onEdit(immeuble)}
+                        aria-label={`Modifier ${immeuble.name}`}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        className="text-red-600 hover:text-red-700"
+                        onClick={() => handleDelete(immeuble.id)}
+                        aria-label={`Supprimer ${immeuble.name}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -13,11 +13,11 @@ import { useAuthStore } from "@/features/auth/store/authStore";
  */
 export default function RequireAuth() {
   const { user } = useAuthStore();
-  
+
   // Determine auth state from user value
   const isLoading = user === undefined;
-  const isAuthenticated = user !== null && user !== undefined;
-  
+  const isAuthenticated = !!(user && typeof user === 'object' && Object.keys(user).length > 0);
+
   // State 1: Loading - Show splash screen (prevents flicker)
   if (isLoading) {
     return (
@@ -29,12 +29,12 @@ export default function RequireAuth() {
       </div>
     );
   }
-  
+
   // State 2: Authenticated - Render protected routes
   if (isAuthenticated) {
     return <Outlet />;
   }
-  
+
   // State 3: Guest - Redirect to login
   return <Navigate to="/login" replace />;
 }

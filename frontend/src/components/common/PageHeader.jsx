@@ -11,7 +11,11 @@ export default function PageHeader({ title, description, onAdd, addLabel = "+ Aj
 
       {onAdd ? (
         <div className="flex items-center md:justify-end">
-          <Button type="button" onClick={onAdd}>
+          <Button 
+            type="button" 
+            onClick={onAdd}
+            variant="emerald"
+          >
             <Plus className="mr-1 h-4 w-4" />
             {addLabel.replace("+ ", "")}
           </Button>

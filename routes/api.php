@@ -6,7 +6,10 @@ use App\Http\Controllers\Api\DepenseController;
 use App\Http\Controllers\Api\ImmeubleController;
 use App\Http\Controllers\Api\PaiementController;
 use App\Http\Controllers\Api\ResidentController;
+use App\Http\Controllers\Api\PublicStatsController;
 use Illuminate\Support\Facades\Route;
+
+Route::get('/public/stats', [PublicStatsController::class, 'index']);
 
 Route::middleware(['auth:sanctum'])->group(function () {
 

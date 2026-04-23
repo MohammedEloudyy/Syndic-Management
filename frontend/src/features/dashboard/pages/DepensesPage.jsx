@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Pencil, Trash2, Receipt, Loader2 } from "lucide-react";
+import { Pencil, Trash2, Receipt, Loader2, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,6 +16,7 @@ import {
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 import { useResource } from "@/features/dashboard/hooks/useResource";
 import {
   createDepense,
@@ -55,7 +56,8 @@ export default function DepensesPage() {
   const immeublesQ = useResource(() => getImmeubles());
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [actionError, setActionError] = useState("");
+  const [buildingFilter, setBuildingFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
 
   const immeubles = immeublesQ.data ?? [];
   const firstBuildingId = immeubles[0]?.id ?? "";
@@ -75,8 +77,8 @@ export default function DepensesPage() {
 
   const immeublesById = useMemo(() => new Map(immeubles.map((i) => [i.id, i])), [immeubles]);
 
-  const items = depensesQ.data ?? [];
-  const total = useMemo(() => items.reduce((sum, d) => sum + d.amount, 0), [items]);
+  const rawItems = depensesQ.data ?? [];
+  const total = useMemo(() => rawItems.reduce((sum, d) => sum + d.amount, 0), [rawItems]);
 
   const resetForm = (item) => {
     form.reset({
@@ -98,34 +100,42 @@ export default function DepensesPage() {
   const onDelete = async (id) => {
     const ok = window.confirm("Supprimer cette dépense ?");
     if (!ok) return;
-    setActionError("");
     try {
       await deleteDepense(id);
+      toast.success("Dépense supprimée avec succès");
       await depensesQ.refetch();
     } catch (e) {
-      setActionError(errorMessage(e));
+      toast.error(errorMessage(e));
     }
   };
 
   const onSubmit = async (values) => {
-    setActionError("");
     try {
       if (editingId) {
         await updateDepense(editingId, values);
+        toast.success("Dépense modifiée avec succès");
       } else {
         await createDepense(values);
+        toast.success("Dépense ajoutée avec succès");
       }
       setEditingId(null);
       setShowForm(false);
       resetForm(null);
       await depensesQ.refetch();
     } catch (e) {
-      setActionError(errorMessage(e));
+      toast.error(errorMessage(e));
     }
   };
 
   const loading = depensesQ.loading || immeublesQ.loading;
   const fetchError = depensesQ.error || immeublesQ.error;
+  const items = useMemo(() => {
+    return rawItems.filter(item => {
+      const matchBuilding = buildingFilter === "all" || item.buildingId === buildingFilter;
+      const matchCategory = categoryFilter === "all" || item.category === categoryFilter;
+      return matchBuilding && matchCategory;
+    });
+  }, [rawItems, buildingFilter, categoryFilter]);
   const isSubmitting = form.formState.isSubmitting;
 
   if (loading && !depensesQ.data) {
@@ -159,21 +169,18 @@ export default function DepensesPage() {
             setShowForm((v) => !v);
             resetForm(null);
           }}
+          variant="emerald"
         >
-          + Ajouter
+          + Ajouter une dépense
         </Button>
       </div>
 
-      {actionError ? (
-        <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-          {actionError}
-        </div>
-      ) : null}
+
 
       <Card className="mb-5">
         <CardContent className="p-6">
           <div className="text-sm font-semibold text-muted-foreground">Total des dépenses</div>
-          <div className="mt-2 text-3xl font-semibold">{total} €</div>
+          <div className="mt-2 text-3xl font-semibold">{total.toLocaleString()} MAD</div>
           <div className="mt-1 text-sm text-muted-foreground">Toutes périodes confondues</div>
         </CardContent>
       </Card>
@@ -225,7 +232,7 @@ export default function DepensesPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Montant (€)</label>
+                  <label className="text-sm font-medium text-foreground">Montant (MAD)</label>
                   <Input
                     type="number"
                     placeholder="500"
@@ -237,7 +244,7 @@ export default function DepensesPage() {
                 <div className="space-y-2 md:col-span-2">
                   <label className="text-sm font-medium text-foreground">Date</label>
                   <Input
-                    placeholder="jj/mm/aaaa"
+                    type="date"
                     {...form.register("date")}
                     aria-invalid={!!form.formState.errors.date}
                   />
@@ -254,9 +261,14 @@ export default function DepensesPage() {
               </div>
 
               <div className="flex items-center gap-3">
-                <Button type="submit" disabled={isSubmitting}>
+                <Button 
+                  type="submit" 
+                  disabled={isSubmitting}
+                  variant="modern"
+                  className="h-8 px-6"
+                >
                   {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                  Enregistrer
+                  {editingId ? "Enregistrer les modifications" : "Confirmer l'ajout"}
                 </Button>
                 <Button
                   type="button"
@@ -275,7 +287,35 @@ export default function DepensesPage() {
           </CardContent>
         </Card>
       ) : (
-        <Card>
+        <>
+          <div className="mb-4 flex flex-wrap gap-3">
+            <select
+              className="h-9 w-full md:w-[200px] rounded-lg border border-input bg-background px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+              value={buildingFilter}
+              onChange={(e) => setBuildingFilter(e.target.value)}
+            >
+              <option value="all">Tous les immeubles</option>
+              {immeubles.map((i) => (
+                <option key={i.id} value={i.id}>
+                  {i.name}
+                </option>
+              ))}
+            </select>
+
+            <select
+              className="h-9 w-full md:w-[150px] rounded-lg border border-input bg-background px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+            >
+              <option value="all">Toutes les catégories</option>
+              {categories.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </div>
+          <Card>
           <CardContent className="p-0">
             <Table>
               <TableHeader>
@@ -308,7 +348,7 @@ export default function DepensesPage() {
                           {d.category}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right">{d.amount} €</TableCell>
+                      <TableCell className="text-right">{d.amount} MAD</TableCell>
                       <TableCell>{d.date}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-3">
@@ -337,6 +377,7 @@ export default function DepensesPage() {
             </Table>
           </CardContent>
         </Card>
+        </>
       )}
     </div>
   );

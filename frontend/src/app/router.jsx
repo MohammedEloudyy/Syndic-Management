@@ -26,7 +26,7 @@ export const router = createBrowserRouter([
       {
         element: <AuthLayout />,
         children: [
-          { path: "/login",    element: <LoginPage /> },
+          { path: "/login", element: <LoginPage /> },
           { path: "/register", element: <RegisterPage /> },
         ],
       },
@@ -39,12 +39,12 @@ export const router = createBrowserRouter([
       {
         element: <DashboardLayout />,
         children: [
-          { path: "/dashboard",              element: <DashboardPage /> },
-          { path: "/dashboard/immeubles",    element: <ImmeublesPage /> },
+          { path: "/dashboard", element: <DashboardPage /> },
+          { path: "/dashboard/immeubles", element: <ImmeublesPage /> },
           { path: "/dashboard/appartements", element: <AppartementsPage /> },
-          { path: "/dashboard/residents",    element: <ResidentsPage /> },
-          { path: "/dashboard/paiements",    element: <PaiementsPage /> },
-          { path: "/dashboard/depenses",     element: <DepensesPage /> },
+          { path: "/dashboard/residents", element: <ResidentsPage /> },
+          { path: "/dashboard/paiements", element: <PaiementsPage /> },
+          { path: "/dashboard/depenses", element: <DepensesPage /> },
         ],
       },
       // Catch-all: under RequireAuth so guests get redirected to login cleanly

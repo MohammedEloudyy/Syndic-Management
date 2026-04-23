@@ -1,11 +1,21 @@
 import { Outlet, Link, useLocation } from "react-router-dom";
-import { Building2, CreditCard, Lock, Users } from "lucide-react";
+import { Building2, CreditCard, Lock, Users, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { useEffect, useState } from "react";
+import { getPublicStats } from "@/features/dashboard/api/dashboardApi";
 
 export default function AuthLayout() {
   const { pathname } = useLocation();
   const isLogin = pathname === "/login";
+  const [stats, setStats] = useState({ total_immeubles: 0, total_residents: 0, payment_rate: 0 });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getPublicStats()
+      .then(setStats)
+      .finally(() => setLoading(false));
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -26,14 +36,18 @@ export default function AuthLayout() {
             <div className="rounded-2xl bg-white/10 p-4 text-white backdrop-blur">
               <div className="flex items-center gap-2">
                 <Building2 className="h-5 w-5 text-blue-100" />
-                <div className="text-2xl font-semibold">18</div>
+                <div className="text-2xl font-semibold">
+                  {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : stats.total_immeubles}
+                </div>
               </div>
               <div className="mt-1 text-xs text-blue-100">Immeubles</div>
             </div>
             <div className="rounded-2xl bg-white/10 p-4 text-white backdrop-blur">
               <div className="flex items-center gap-2">
                 <Users className="h-5 w-5 text-blue-100" />
-                <div className="text-2xl font-semibold">401</div>
+                <div className="text-2xl font-semibold">
+                   {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : stats.total_residents}
+                </div>
               </div>
               <div className="mt-1 text-xs text-blue-100">Résidents</div>
             </div>
@@ -41,7 +55,11 @@ export default function AuthLayout() {
               <div className="flex items-center gap-2">
                 <CreditCard className="h-5 w-5 text-blue-100" />
                 <div className="text-2xl font-semibold">
-                  92<span className="text-base font-normal">%</span>
+                   {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : (
+                     <>
+                       {stats.payment_rate}<span className="text-base font-normal">%</span>
+                     </>
+                   )}
                 </div>
               </div>
               <div className="mt-1 text-xs text-blue-100">Paiements</div>
@@ -64,10 +82,10 @@ export default function AuthLayout() {
                 <Link
                   to="/login"
                   className={cn(
-                    "rounded-lg px-4 py-2 text-center text-sm font-medium transition-colors",
+                    "rounded-lg px-4 py-2 text-center text-sm font-medium transition-all duration-300",
                     isLogin
-                      ? "bg-blue-600 text-white"
-                      : "text-muted-foreground hover:bg-muted",
+                      ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30"
+                      : "text-muted-foreground hover:bg-gray-100 hover:text-foreground",
                   )}
                 >
                   Se connecter
@@ -75,10 +93,10 @@ export default function AuthLayout() {
                 <Link
                   to="/register"
                   className={cn(
-                    "rounded-lg px-4 py-2 text-center text-sm font-medium transition-colors",
+                    "rounded-lg px-4 py-2 text-center text-sm font-medium transition-all duration-300",
                     !isLogin
-                      ? "bg-blue-600 text-white"
-                      : "text-muted-foreground hover:bg-muted",
+                      ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30"
+                      : "text-muted-foreground hover:bg-gray-100 hover:text-foreground",
                   )}
                 >
                   Créer un compte

@@ -76,12 +76,12 @@ export default function Sidebar({ collapsed = false, onLogout }) {
           type="button"
           variant="ghost"
           className={cn(
-            "w-full justify-start gap-3 rounded-xl px-3 py-2 text-muted-foreground hover:bg-muted/30",
+            "w-full justify-start gap-3 rounded-xl px-3 py-2 text-muted-foreground hover:bg-red-50 hover:text-red-600 transition-colors",
             collapsed ? "px-2" : "",
           )}
           onClick={onLogout}
         >
-          <LogOut className="h-4 w-4" />
+          <LogOut className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
           {!collapsed ? <span>Déconnexion</span> : null}
         </Button>
       </div>

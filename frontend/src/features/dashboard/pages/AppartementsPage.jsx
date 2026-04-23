@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Home, Pencil, Trash2, Loader2 } from "lucide-react";
+import { Home, Pencil, Trash2, Loader2, Search } from "lucide-react";
 import  PageHeader  from "@/components/common/PageHeader";
 import StatusBadge from "@/components/common/StatusBadge";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 import { useResource } from "@/features/dashboard/hooks/useResource";
 import {
   createAppartement,
@@ -39,8 +40,9 @@ export default function AppartementsPage() {
   const immeublesQ = useResource(() => getImmeubles());
   const appartementsQ = useResource(() => getAppartements());
   const [editingId, setEditingId] = useState(null);
-  const [showForm, setShowForm] = useState(true);
-  const [actionError, setActionError] = useState("");
+  const [showForm, setShowForm] = useState(false);
+  const [buildingFilter, setBuildingFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   const immeubles = immeublesQ.data ?? [];
   const firstBuildingId = immeubles[0]?.id ?? "";
@@ -79,34 +81,43 @@ export default function AppartementsPage() {
   const onDelete = async (id) => {
     const ok = window.confirm("Supprimer cet appartement ?");
     if (!ok) return;
-    setActionError("");
     try {
       await deleteAppartement(id);
+      toast.success("Appartement supprimé avec succès");
       await appartementsQ.refetch();
     } catch (e) {
-      setActionError(errorMessage(e));
+      toast.error(errorMessage(e));
     }
   };
 
   const onSubmit = async (values) => {
-    setActionError("");
     try {
       if (editingId) {
         await updateAppartement(editingId, values);
+        toast.success("Appartement modifié avec succès");
       } else {
         await createAppartement(values);
+        toast.success("Appartement ajouté avec succès");
       }
       setEditingId(null);
+      setShowForm(false);
       resetForm(null);
       await appartementsQ.refetch();
     } catch (e) {
-      setActionError(errorMessage(e));
+      toast.error(errorMessage(e));
     }
   };
 
   const loading = immeublesQ.loading || appartementsQ.loading;
   const fetchError = immeublesQ.error || appartementsQ.error;
-  const items = appartementsQ.data ?? [];
+  const rawItems = appartementsQ.data ?? [];
+  const items = useMemo(() => {
+    return rawItems.filter(item => {
+      const matchBuilding = buildingFilter === "all" || item.buildingId === buildingFilter;
+      const matchStatus = statusFilter === "all" || item.status === statusFilter;
+      return matchBuilding && matchStatus;
+    });
+  }, [rawItems, buildingFilter, statusFilter]);
   const isSubmitting = form.formState.isSubmitting;
 
   if (loading && !appartementsQ.data) {
@@ -131,14 +142,14 @@ export default function AppartementsPage() {
       <PageHeader
         title="Gestion des appartements"
         description="Gérez tous vos appartements"
-        onAdd={() => setShowForm((v) => !v)}
+        onAdd={() => {
+          setEditingId(null);
+          setShowForm((v) => !v);
+          resetForm(null);
+        }}
       />
 
-      {actionError ? (
-        <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-          {actionError}
-        </div>
-      ) : null}
+
 
       {showForm ? (
         <Card className="mb-5">
@@ -215,9 +226,9 @@ export default function AppartementsPage() {
               </div>
 
               <div className="flex items-center gap-3">
-                <Button type="submit" disabled={isSubmitting}>
+                <Button type="submit" variant="modern" className="px-6 h-8" disabled={isSubmitting}>
                   {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                  Enregistrer
+                  {editingId ? "Enregistrer les modifications" : "Confirmer l'ajout"}
                 </Button>
                 <Button
                   type="button"
@@ -235,6 +246,31 @@ export default function AppartementsPage() {
           </CardContent>
         </Card>
       ) : null}
+
+      <div className="mb-4 flex flex-wrap gap-3">
+        <select
+          className="h-9 w-full md:w-[200px] rounded-lg border border-input bg-background px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+          value={buildingFilter}
+          onChange={(e) => setBuildingFilter(e.target.value)}
+        >
+          <option value="all">Tous les immeubles</option>
+          {immeubles.map((b) => (
+            <option key={b.id} value={b.id}>
+              {b.name}
+            </option>
+          ))}
+        </select>
+
+        <select
+          className="h-9 w-full md:w-[150px] rounded-lg border border-input bg-background px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+        >
+          <option value="all">Tous les statuts</option>
+          <option value="occupé">Occupé</option>
+          <option value="vacant">Vacant</option>
+        </select>
+      </div>
 
       <Card>
         <CardContent className="p-0">

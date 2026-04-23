@@ -12,7 +12,7 @@ export function RootRedirect() {
   
   // Determine auth state
   const isLoading = user === undefined;
-  const isAuthenticated = user !== null && user !== undefined;
+  const isAuthenticated = !!(user && typeof user === 'object' && Object.keys(user).length > 0);
 
   // Show nothing while loading (router handles gating)
   if (isLoading) {

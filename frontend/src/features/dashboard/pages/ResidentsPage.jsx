@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Mail, Phone, Pencil, Trash2, UserRound, Loader2 } from "lucide-react";
+import { Mail, Phone, Pencil, Trash2, UserRound, Loader2, Search } from "lucide-react";
 import PageHeader from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 import { useResource } from "@/features/dashboard/hooks/useResource";
 import {
   createResident,
@@ -39,8 +40,8 @@ export default function ResidentsPage() {
   const appartementsQ = useResource(() => getAppartements());
   const immeublesQ = useResource(() => getImmeubles());
   const [editingId, setEditingId] = useState(null);
-  const [showForm, setShowForm] = useState(true);
-  const [actionError, setActionError] = useState("");
+  const [showForm, setShowForm] = useState(false);
+  const [buildingFilter, setBuildingFilter] = useState("all");
 
   const appartements = appartementsQ.data ?? [];
   const firstAptId = appartements[0]?.id ?? "";
@@ -85,34 +86,43 @@ export default function ResidentsPage() {
   const onDelete = async (id) => {
     const ok = window.confirm("Supprimer ce résident ?");
     if (!ok) return;
-    setActionError("");
     try {
       await deleteResident(id);
+      toast.success("Résident supprimé avec succès");
       await residentsQ.refetch();
     } catch (e) {
-      setActionError(errorMessage(e));
+      toast.error(errorMessage(e));
     }
   };
 
   const onSubmit = async (values) => {
-    setActionError("");
     try {
       if (editingId) {
         await updateResident(editingId, values);
+        toast.success("Résident modifié avec succès");
       } else {
         await createResident(values);
+        toast.success("Résident ajouté avec succès");
       }
       setEditingId(null);
+      setShowForm(false);
       resetForm(null);
       await residentsQ.refetch();
     } catch (e) {
-      setActionError(errorMessage(e));
+      toast.error(errorMessage(e));
     }
   };
 
   const loading = residentsQ.loading || appartementsQ.loading || immeublesQ.loading;
   const fetchError = residentsQ.error || appartementsQ.error || immeublesQ.error;
-  const items = residentsQ.data ?? [];
+  const rawItems = residentsQ.data ?? [];
+  const items = useMemo(() => {
+    return rawItems.filter(r => {
+      if (buildingFilter === "all") return true;
+      const apt = appartementsById.get(r.apartmentId);
+      return apt?.buildingId === buildingFilter;
+    });
+  }, [rawItems, buildingFilter, appartementsById]);
   const isSubmitting = form.formState.isSubmitting;
 
   if (loading && !residentsQ.data) {
@@ -137,14 +147,14 @@ export default function ResidentsPage() {
       <PageHeader
         title="Gestion des résidents"
         description="Gérez tous vos résidents"
-        onAdd={() => setShowForm((v) => !v)}
+        onAdd={() => {
+          setEditingId(null);
+          setShowForm((v) => !v);
+          resetForm(null);
+        }}
       />
 
-      {actionError ? (
-        <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-          {actionError}
-        </div>
-      ) : null}
+
 
       {showForm ? (
         <Card className="mb-5">
@@ -197,18 +207,18 @@ export default function ResidentsPage() {
 
                 <div className="space-y-2 md:col-span-2">
                   <label className="text-sm font-medium text-foreground">Date d&apos;entrée</label>
-                  <Input
-                    placeholder="jj/mm/aaaa"
-                    {...form.register("entryDate")}
-                    aria-invalid={!!form.formState.errors.entryDate}
-                  />
+                    <Input
+                      type="date"
+                      {...form.register("entryDate")}
+                      aria-invalid={!!form.formState.errors.entryDate}
+                    />
                 </div>
               </div>
 
               <div className="flex items-center gap-3">
-                <Button type="submit" disabled={isSubmitting}>
+                <Button type="submit" variant="modern" className="px-6 h-8" disabled={isSubmitting}>
                   {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                  Enregistrer
+                  {editingId ? "Enregistrer les modifications" : "Confirmer l'ajout"}
                 </Button>
                 <Button
                   type="button"
@@ -226,6 +236,21 @@ export default function ResidentsPage() {
           </CardContent>
         </Card>
       ) : null}
+
+      <div className="mb-4">
+        <select
+          className="h-9 w-full md:w-[200px] rounded-lg border border-input bg-background px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+          value={buildingFilter}
+          onChange={(e) => setBuildingFilter(e.target.value)}
+        >
+          <option value="all">Tous les immeubles</option>
+          {(immeublesQ.data ?? []).map((b) => (
+            <option key={b.id} value={b.id}>
+              {b.name}
+            </option>
+          ))}
+        </select>
+      </div>
 
       <Card>
         <CardContent className="p-0">

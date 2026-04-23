@@ -25,7 +25,7 @@ class PaiementStoreRequest extends FormRequest
             ],
             'montant' => ['required', 'numeric', 'min:0'],
             'date_paiement' => ['required', 'date'],
-            'statut' => ['required', Rule::in(['payé', 'en_attente'])],
+            'statut' => ['required', Rule::in(['payé', 'en_attente', 'en_retard'])],
         ];
     }
 }

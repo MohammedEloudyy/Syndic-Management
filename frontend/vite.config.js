@@ -24,7 +24,6 @@ export default defineConfig(({ mode }) => {
         "/sanctum": {
           target: backendTarget,
           changeOrigin: true,
-          credentials: true,
         },
       },
     },

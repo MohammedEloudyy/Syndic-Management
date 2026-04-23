@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 abstract class Controller
 {
+    use AuthorizesRequests;
     /**
      * @param  class-string<\Illuminate\Http\Resources\Json\JsonResource>  $resourceClass
      */

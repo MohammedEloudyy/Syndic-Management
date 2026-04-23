@@ -5,36 +5,16 @@ const BACKEND = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
 
 export const getBackendOrigin = () => BACKEND;
 
-// Helper: Extract CSRF token from cookie
-function getCSRFToken() {
-  try {
-    const token = document.cookie
-      .split("; ")
-      .find((row) => row.startsWith("XSRF-TOKEN="))
-      ?.split("=")[1];
-    
-    return token ? decodeURIComponent(token) : null;
-  } catch (error) {
-    console.warn("CSRF token extraction error:", error);
-    return null;
-  }
-}
-
-// API client - with credentials for session-based auth
+/**
+ * API client — for /api/* routes (authenticated)
+ * 
+ * - withCredentials: sends session + XSRF cookies cross-origin
+ * - withXSRFToken: Axios 1.6+ auto-reads XSRF-TOKEN cookie and sends X-XSRF-TOKEN header
+ */
 export const axiosClient = axios.create({
   baseURL: BACKEND + "/api",
-  withCredentials: true,  // ✅ Critical: send cookies
-  timeout: 30000,  // 30 second timeout
-  headers: {
-    "Accept": "application/json",
-    "Content-Type": "application/json",
-  },
-});
-
-// Web client - for auth routes (non-API)
-export const webClient = axios.create({
-  baseURL: BACKEND,
-  withCredentials: true,  // ✅ Critical: send cookies
+  withCredentials: true,
+  withXSRFToken: true,
   timeout: 30000,
   headers: {
     "Accept": "application/json",
@@ -42,48 +22,41 @@ export const webClient = axios.create({
   },
 });
 
-// ✅ Request interceptor: add CSRF token for POST/PUT/PATCH/DELETE
-axiosClient.interceptors.request.use((config) => {
-  const token = getCSRFToken();
-  // Only add CSRF token for state-changing requests
-  if (["post", "put", "patch", "delete"].includes(config.method?.toLowerCase()) && token) {
-    config.headers["X-XSRF-TOKEN"] = token;
-  }
-  return config;
-});
-
-webClient.interceptors.request.use((config) => {
-  const token = getCSRFToken();
-  if (["post", "put", "patch", "delete"].includes(config.method?.toLowerCase()) && token) {
-    config.headers["X-XSRF-TOKEN"] = token;
-  }
-  return config;
+/**
+ * Web client — for auth routes (/login, /logout, /register)
+ * 
+ * Same cookie/CSRF config as axiosClient, different baseURL.
+ */
+export const webClient = axios.create({
+  baseURL: BACKEND,
+  withCredentials: true,
+  withXSRFToken: true,
+  timeout: 30000,
+  headers: {
+    "Accept": "application/json",
+    "Content-Type": "application/json",
+  },
 });
 
 /**
- * Response Interceptor
+ * Shared 401 handler — clears auth state on session expiration.
  * 
- * Handles 401 responses (session expired).
- * Only clears auth if user was actually authenticated.
+ * Does NOT do window.location.href — Zustand store update triggers
+ * route guard re-evaluation automatically (no full page reload needed).
  */
-axiosClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    // Handle session expiration (401)
-    if (error.response?.status === 401) {
-      const store = useAuthStore.getState();
-      
-      // Only clear if user was authenticated
-      if (store.user) {
-        store.clearUser();
-        
-        // Redirect to login (unless already there)
-        if (!window.location.pathname.includes("/login")) {
-          window.location.href = "/login?reason=session_expired";
-        }
-      }
+function handle401(error) {
+  if (error.response?.status === 401) {
+    const store = useAuthStore.getState();
+
+    // Only clear if user was previously authenticated (avoid clearing during bootstrap)
+    if (store.user) {
+      store.clearUser();
     }
-    
-    return Promise.reject(error);
   }
-);
+
+  return Promise.reject(error);
+}
+
+// Attach 401 interceptor to both clients
+axiosClient.interceptors.response.use((response) => response, handle401);
+webClient.interceptors.response.use((response) => response, handle401);

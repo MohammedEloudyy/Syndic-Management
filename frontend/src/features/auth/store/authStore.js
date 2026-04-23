@@ -11,14 +11,11 @@ import { create } from "zustand";
  * NO localStorage, NO caching, NO hacks.
  */
 export const useAuthStore = create((set) => ({
-  user: null,
+  user: undefined,  // Start in LOADING state — prevents flash redirect
   
-  // Set user (marks as ready/authenticated)
+  // Set user (marks as authenticated, or null for guest)
   setUser: (user) => set({ user }),
   
-  // Clear user (logout)
+  // Clear user (logout → guest state)
   clearUser: () => set({ user: null }),
-  
-  // Initialize to loading state on mount
-  initializeLoading: () => set({ user: undefined }),
 }));

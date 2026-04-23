@@ -12,11 +12,12 @@ import ResidentsPage from "@/features/dashboard/pages/ResidentsPage";
 import PaiementsPage from "@/features/dashboard/pages/PaiementsPage";
 import DepensesPage from "@/features/dashboard/pages/DepensesPage";
 import GlobalErrorPage from "@/app/GlobalErrorPage";
+import { RootRedirect } from "@/app/routes/RootRedirect";
 
 export const router = createBrowserRouter([
   {
     path: "/",
-    element: <Navigate to="/dashboard" replace />,
+    element: <RootRedirect />,
   },
   {
     element: <RedirectIfAuthed />,
@@ -46,7 +47,8 @@ export const router = createBrowserRouter([
           { path: "/dashboard/depenses",     element: <DepensesPage /> },
         ],
       },
+      // Catch-all: under RequireAuth so guests get redirected to login cleanly
+      { path: "*", element: <Navigate to="/dashboard" replace /> },
     ],
   },
-  { path: "*", element: <Navigate to="/dashboard" replace /> },
 ]);

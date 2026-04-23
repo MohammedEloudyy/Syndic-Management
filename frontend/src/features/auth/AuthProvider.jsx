@@ -6,7 +6,7 @@ import { useAuthStore } from "./store/authStore";
  * AuthProvider - ONLY responsibility: Bootstrap auth state
  * 
  * On mount:
- * 1. Set state to "loading" (user === undefined)
+ * 1. Store starts in "loading" state (user === undefined)
  * 2. Call /api/user
  * 3. Update state to "authenticated" (user object) or "guest" (user === null)
  * 
@@ -15,15 +15,13 @@ import { useAuthStore } from "./store/authStore";
  * All UI gating happens in RequireAuth and RedirectIfAuthed guards.
  */
 export function AuthProvider({ children }) {
-  const { setUser, clearUser, initializeLoading } = useAuthStore();
+  const setUser = useAuthStore((s) => s.setUser);
+  const clearUser = useAuthStore((s) => s.clearUser);
 
   useEffect(() => {
     let mounted = true;
 
-    // Step 1: Mark as loading
-    initializeLoading();
-
-    // Step 2: Bootstrap auth from backend
+    // Bootstrap auth from backend (store already starts as "loading")
     (async () => {
       try {
         const user = await getMe();
@@ -44,7 +42,7 @@ export function AuthProvider({ children }) {
     return () => {
       mounted = false;
     };
-  }, [setUser, clearUser, initializeLoading]);
+  }, []); // setUser/clearUser are stable Zustand refs
 
   // Provider just wraps children, no UI here
   // All UI gating happens in route guards

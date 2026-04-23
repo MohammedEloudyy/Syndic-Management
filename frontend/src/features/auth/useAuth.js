@@ -26,10 +26,10 @@ export function useAuth() {
     try {
       // Step 1: Login returns user data directly
       const response = await loginUser(credentials);
-      const user = response.user ?? response;
+      const userData = response.user ?? response;
       
       // Step 2: Update store
-      setUser(user);
+      setUser(userData);
       
       // Step 3: Navigate (UI gate prevents flicker)
       navigate("/dashboard", { replace: true });
@@ -46,10 +46,10 @@ export function useAuth() {
     try {
       // Step 1: Register returns user data directly
       const response = await registerUser(payload);
-      const user = response.user ?? response;
+      const userData = response.user ?? response;
       
       // Step 2: Update store
-      setUser(user);
+      setUser(userData);
       
       // Step 3: Navigate
       navigate("/dashboard", { replace: true });

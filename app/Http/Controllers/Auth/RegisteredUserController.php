@@ -38,6 +38,8 @@ class RegisteredUserController extends Controller
 
         Auth::login($user);
 
+        $request->session()->regenerate();
+
         return response()->json([
             'user' => $user,
             'message' => 'Registration successful'

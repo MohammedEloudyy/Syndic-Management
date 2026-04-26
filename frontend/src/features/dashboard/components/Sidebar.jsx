@@ -71,7 +71,7 @@ export default function Sidebar({ collapsed = false, onLogout }) {
         })}
       </nav>
 
-      <div className="px-2 pb-4">
+      <div className="mt-auto px-2 pb-4">
         <Button
           type="button"
           variant="ghost"

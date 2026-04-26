@@ -1,3 +1,4 @@
+/* eslint-env node */
 import { defineConfig, loadEnv } from "vite";
 import path from "path";
 import { fileURLToPath } from "node:url";

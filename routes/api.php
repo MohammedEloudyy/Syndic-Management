@@ -5,13 +5,14 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DepenseController;
 use App\Http\Controllers\Api\ImmeubleController;
 use App\Http\Controllers\Api\PaiementController;
-use App\Http\Controllers\Api\ResidentController;
 use App\Http\Controllers\Api\PublicStatsController;
+use App\Http\Controllers\Api\ResidentController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/public/stats', [PublicStatsController::class, 'index']);
+// Public route — aggressive rate limit, no auth needed
+Route::middleware('throttle:10,1')->get('/public/stats', PublicStatsController::class);
 
-Route::middleware(['auth:sanctum'])->group(function () {
+Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
 
     Route::get('/user', fn(\Illuminate\Http\Request $r) => $r->user());
 

@@ -21,6 +21,8 @@ class ImmeubleResource extends JsonResource
             'apartment_count' => (int) $this->apartment_count,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
+            'appartements' => AppartementResource::collection($this->whenLoaded('appartements')),
+            'depenses' => DepenseResource::collection($this->whenLoaded('depenses')),
         ];
     }
 }

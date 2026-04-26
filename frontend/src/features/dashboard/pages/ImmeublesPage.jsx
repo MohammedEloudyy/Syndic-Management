@@ -41,9 +41,9 @@ export default function ImmeublesPage() {
   const [cityFilter, setCityFilter] = useState("all");
   const [page, setPage] = useState(1);
 
-  const { data: rawItems, meta, loading, error, refetch } = useResource(getImmeubles, { 
+  const { data: rawItems, meta, loading, error, refetch } = useResource(getImmeubles, {
     city: cityFilter === "all" ? undefined : cityFilter,
-    page 
+    page
   });
 
   const cities = useMemo(() => {
@@ -314,7 +314,7 @@ export default function ImmeublesPage() {
         </CardContent>
       </Card>
 
-      <Pagination 
+      <Pagination
         currentPage={meta?.current_page || 1}
         lastPage={meta?.last_page || 1}
         onPageChange={setPage}

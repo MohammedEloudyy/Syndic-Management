@@ -75,7 +75,7 @@ export const getDashboardStats = () =>
   axiosClient.get("/dashboard/stats").then((r) => r.data.data);
 
 export const getPublicStats = () =>
-  axiosClient.get("/public/stats").then((r) => r.data.data);
+  axiosClient.get("/public/stats").then((r) => r.data);
 
 // ── Immeubles ──────────────────────────────────────────────
 export const getImmeubles = (params = {}) =>

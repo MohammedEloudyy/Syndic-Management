@@ -34,6 +34,12 @@ class RegisteredUserController extends Controller
             'password' => Hash::make($request->string('password')),
         ]);
 
+        // Auto-assign syndic role
+        $syndicRole = \App\Models\Role::where('slug', 'syndic')->first();
+        if ($syndicRole) {
+            $user->roles()->attach($syndicRole);
+        }
+
         event(new Registered($user));
 
         Auth::login($user);

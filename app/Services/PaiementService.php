@@ -47,6 +47,10 @@ class PaiementService
             });
         }
 
+        if (! empty($validated['resident_id'])) {
+            $query->where('resident_id', $validated['resident_id']);
+        }
+
         if (! empty($validated['date_from'])) {
             $query->whereDate('date_paiement', '>=', $validated['date_from']);
         }
@@ -144,7 +148,8 @@ class PaiementService
         return [
             'total' => (float) (clone $query)->sum('montant'),
             'paid' => (float) (clone $query)->where('statut', 'payé')->sum('montant'),
-            'pending' => (float) (clone $query)->whereIn('statut', ['en_attente', 'en attente'])->sum('montant'),
+            'pending' => (float) (clone $query)->where('statut', 'en_attente')->sum('montant'),
+            'overdue' => (float) (clone $query)->where('statut', 'en_retard')->sum('montant'),
         ];
     }
 }

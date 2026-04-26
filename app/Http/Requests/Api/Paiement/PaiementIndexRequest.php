@@ -26,7 +26,7 @@ class PaiementIndexRequest extends FormRequest
                 'uuid',
                 Rule::exists('immeubles', 'id')->where(fn ($q) => $q->where('user_id', auth()->id())),
             ],
-            'statut' => ['sometimes', Rule::in(['payé', 'en_attente'])],
+            'statut' => ['sometimes', Rule::in(['payé', 'en_attente', 'en_retard'])],
             'date_from' => ['sometimes', 'date'],
             'date_to' => ['sometimes', 'date', 'after_or_equal:date_from'],
         ];

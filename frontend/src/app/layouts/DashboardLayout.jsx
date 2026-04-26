@@ -18,7 +18,7 @@ export default function DashboardLayout() {
   return (
     <div className="min-h-screen bg-background">
       <div className="flex">
-        <div className="hidden md:block">{sidebar}</div>
+        <div className="sticky top-0 hidden h-screen md:block">{sidebar}</div>
 
         {mobileOpen ? (
           <div

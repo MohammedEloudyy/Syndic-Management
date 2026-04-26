@@ -74,16 +74,29 @@ class ResidentService
     public function update(Resident $resident, array $validated): Resident
     {
         return DB::transaction(function () use ($resident, $validated) {
-            $resident->update([
-                'appartement_id' => $validated['appartement_id'],
-                'full_name' => $validated['full_name'],
-                'email' => $validated['email'],
-                'phone' => $validated['phone'],
-                'entry_date' => $validated['entry_date'],
-                'monthly_charge' => array_key_exists('monthly_charge', $validated)
-                    ? $validated['monthly_charge']
-                    : $resident->monthly_charge,
-            ]);
+            $data = [];
+            if (array_key_exists('appartement_id', $validated)) {
+                $data['appartement_id'] = $validated['appartement_id'];
+            }
+            if (array_key_exists('full_name', $validated)) {
+                $data['full_name'] = $validated['full_name'];
+            }
+            if (array_key_exists('email', $validated)) {
+                $data['email'] = $validated['email'];
+            }
+            if (array_key_exists('phone', $validated)) {
+                $data['phone'] = $validated['phone'];
+            }
+            if (array_key_exists('entry_date', $validated)) {
+                $data['entry_date'] = $validated['entry_date'];
+            }
+            if (array_key_exists('monthly_charge', $validated)) {
+                $data['monthly_charge'] = $validated['monthly_charge'];
+            }
+
+            if ($data !== []) {
+                $resident->update($data);
+            }
 
             return $resident->fresh([
                 'appartement.immeuble',

@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { Pencil, Trash2, Receipt, Loader2, Search } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -37,12 +36,18 @@ const schema = z.object({
   description: z.string().optional(),
 });
 
-function categoryVariant(category) {
-  const v = category.toLowerCase();
-  if (v.includes("maintenance")) return "success";
-  if (v.includes("entretien") || v.includes("util")) return "info";
-  if (v.includes("jardin")) return "warning";
-  return "muted";
+
+
+function getCategoryStyles(category) {
+  const v = (category || "").toLowerCase();
+  if (v.includes("maintenance")) return { color: "text-indigo-700", bg: "bg-indigo-50", border: "border-indigo-100", dot: "bg-indigo-500" };
+  if (v.includes("nettoyage")) return { color: "text-blue-700", bg: "bg-blue-50", border: "border-blue-100", dot: "bg-blue-500" };
+  if (v.includes("élec") || v.includes("elec")) return { color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-100", dot: "bg-amber-500" };
+  if (v.includes("eau")) return { color: "text-cyan-700", bg: "bg-cyan-50", border: "border-cyan-100", dot: "bg-cyan-500" };
+  if (v.includes("ascenseur")) return { color: "text-purple-700", bg: "bg-purple-50", border: "border-purple-100", dot: "bg-purple-500" };
+  if (v.includes("sécurité") || v.includes("securite")) return { color: "text-rose-700", bg: "bg-rose-50", border: "border-rose-100", dot: "bg-rose-500" };
+  if (v.includes("jardin")) return { color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100", dot: "bg-emerald-500" };
+  return { color: "text-slate-700", bg: "bg-slate-50", border: "border-slate-100", dot: "bg-slate-500" };
 }
 
 function errorMessage(err) {
@@ -72,7 +77,7 @@ export default function DepensesPage() {
 
   const immeubles = immeublesQ.data ?? [];
   const firstBuildingId = immeubles[0]?.id ?? "";
-  const categories = ["Maintenance", "Entretien", "Utilités", "Jardinage", "Autres"];
+  const categories = ["Maintenance", "Nettoyage", "Électricité", "Eau", "Ascenseur", "Sécurité", "Jardinage", "Autres"];
 
   const form = useForm({
     resolver: zodResolver(schema),
@@ -376,9 +381,15 @@ export default function DepensesPage() {
                         </TableCell>
                         <TableCell>{building?.name ?? "—"}</TableCell>
                         <TableCell>
-                          <Badge variant={categoryVariant(d.category)} className="rounded-md">
-                            {d.category}
-                          </Badge>
+                          {(() => {
+                            const styles = getCategoryStyles(d.category);
+                            return (
+                              <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium border ${styles.bg} ${styles.color} ${styles.border}`}>
+                                <span className={`h-1 w-1 rounded-full ${styles.dot}`} />
+                                {d.category}
+                              </div>
+                            );
+                          })()}
                         </TableCell>
                         <TableCell className="text-right">{d.amount} MAD</TableCell>
                         <TableCell>{d.date}</TableCell>

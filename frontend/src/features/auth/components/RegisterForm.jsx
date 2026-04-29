@@ -11,8 +11,8 @@ const schema = z
   .object({
     fullName: z.string().min(2, "Nom complet requis"),
     email: z.string().email("Adresse email invalide"),
-    password: z.string().min(6, "Le mot de passe doit contenir au moins 6 caractères"),
-    passwordConfirmation: z.string().min(6, "Confirmation requise"),
+    password: z.string().min(8, "Le mot de passe doit contenir au moins 8 caractères"),
+    passwordConfirmation: z.string().min(8, "Confirmation requise"),
   })
   .refine((data) => data.password === data.passwordConfirmation, {
     message: "Les mots de passe ne correspondent pas",
@@ -55,9 +55,9 @@ export default function RegisterForm() {
       if (status === 419) {
         setServerError(
           resp?.message ||
-            resp?.error ||
-            (typeof resp === "string" ? resp : null) ||
-            `Erreur de sécurité (CSRF) - HTTP ${status}. Rechargez la page puis réessayez.`,
+          resp?.error ||
+          (typeof resp === "string" ? resp : null) ||
+          `Erreur de sécurité (CSRF) - HTTP ${status}. Rechargez la page puis réessayez.`,
         );
         return;
       }
@@ -77,8 +77,8 @@ export default function RegisterForm() {
       if (!errors) {
         setServerError(
           resp?.message ||
-            error?.response?.data?.error ||
-            "Impossible de créer le compte. Veuillez réessayer.",
+          error?.response?.data?.error ||
+          "Impossible de créer le compte. Veuillez réessayer.",
         );
       }
     }
@@ -174,9 +174,9 @@ export default function RegisterForm() {
         </div>
       ) : null}
 
-      <Button 
-        type="submit" 
-        className="w-full h-11" 
+      <Button
+        type="submit"
+        className="w-full h-11"
         variant="modern"
         disabled={isSubmitting}
       >

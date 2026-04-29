@@ -24,8 +24,8 @@ class AppartementService
             $query->where('immeuble_id', $validated['immeuble_id']);
         }
 
-        if (! empty($validated['statut'])) {
-            $query->where('status', $validated['statut']);
+        if (! empty($validated['status'])) {
+            $query->where('status', $validated['status']);
         }
 
         if (! empty($validated['search'])) {

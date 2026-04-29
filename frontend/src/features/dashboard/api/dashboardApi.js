@@ -8,6 +8,7 @@ const mapImmeubleFromApi = (item) => ({
 const mapAppartementFromApi = (item) => ({
   ...item,
   buildingId: item.immeuble_id,
+  buildingName: item.immeuble?.name ?? "—",
 });
 
 const mapResidentFromApi = (item) => ({
@@ -21,11 +22,13 @@ const mapResidentFromApi = (item) => ({
 const mapPaiementFromApi = (item) => ({
   ...item,
   residentId: item.resident_id,
+  residentName: item.resident?.full_name ?? "—",
   apartmentId: item.resident?.appartement_id ?? null,
+  apartmentNumber: item.resident?.appartement?.number ?? "—",
   amount: Number(item.montant ?? 0),
   limitDate: item.date_paiement,
   status: item.statut,
-  type: "Charges mensuelles",
+  type: item.type ?? "Charges mensuelles",
 });
 
 const mapDepenseFromApi = (item) => ({
@@ -60,6 +63,7 @@ const toPaiementPayload = (payload) => ({
   montant: payload.amount ?? payload.montant,
   date_paiement: payload.limitDate ?? payload.date_paiement,
   statut: payload.status ?? payload.statut,
+  type: payload.type,
 });
 
 const toDepensePayload = (payload) => ({
@@ -73,6 +77,9 @@ const toDepensePayload = (payload) => ({
 // ── Stats ──────────────────────────────────────────────────
 export const getDashboardStats = () =>
   axiosClient.get("/dashboard/stats").then((r) => r.data.data);
+
+export const getDashboardOverview = () =>
+  axiosClient.get("/dashboard/overview").then((r) => r.data.data);
 
 export const getPublicStats = () =>
   axiosClient.get("/public/stats").then((r) => r.data);

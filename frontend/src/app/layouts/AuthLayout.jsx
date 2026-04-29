@@ -15,7 +15,7 @@ export default function AuthLayout() {
   useEffect(() => {
     getPublicStats()
       .then(setStats)
-      .catch(() => {}) 
+      .catch(() => { })
       .finally(() => setLoading(false));
   }, []);
 
@@ -23,13 +23,13 @@ export default function AuthLayout() {
     <div className="min-h-screen bg-slate-50 font-outfit">
       <div className="mx-auto flex min-h-screen w-full max-w-[1600px] items-center justify-center p-4 md:p-8">
         <div className="relative grid w-full overflow-hidden rounded-[2.5rem] bg-white shadow-2xl md:grid-cols-12 lg:min-h-[800px]">
-          
+
           {/* Left Side: Brand & Stats */}
           <div className="relative hidden flex-col justify-between overflow-hidden bg-[#0A0D14] p-12 text-white md:col-span-5 md:flex lg:col-span-6">
             {/* Background Decorative Elements */}
             <div className="absolute -left-20 -top-20 h-96 w-96 rounded-full bg-blue-600/20 blur-[120px]" />
             <div className="absolute -right-20 bottom-20 h-80 w-80 rounded-full bg-indigo-600/20 blur-[100px]" />
-            
+
             <div className="relative z-10">
               <div className="flex items-center gap-2.5 mb-12">
                 <div className="flex size-10 items-center justify-center rounded-xl bg-blue-600 shadow-lg shadow-blue-600/40">
@@ -43,10 +43,10 @@ export default function AuthLayout() {
                   Le futur de la <span className="text-blue-500">gestion syndic</span> est ici.
                 </h1>
                 <p className="text-lg text-slate-400 leading-relaxed">
-                  Une plateforme intelligente pour automatiser vos copropriétés, 
+                  Une plateforme intelligente pour automatiser vos copropriétés,
                   optimiser vos revenus et simplifier la vie de vos résidents.
                 </p>
-                
+
                 <div className="flex flex-col gap-4 pt-4">
                   <div className="flex items-center gap-3 text-slate-300">
                     <CheckCircle2 className="h-5 w-5 text-blue-500" />

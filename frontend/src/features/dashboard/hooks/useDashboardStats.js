@@ -1,17 +1,17 @@
-import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { getDashboardStats } from "../api/dashboardApi";
 
 export function useDashboardStats() {
-  const [stats, setStats]     = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState(null);
+  const query = useQuery({
+    queryKey: ["dashboardStats"],
+    queryFn: getDashboardStats,
+    staleTime: 1000 * 60, // 60 seconds (stats are expensive)
+  });
 
-  useEffect(() => {
-    getDashboardStats()
-      .then(setStats)
-      .catch(setError)
-      .finally(() => setLoading(false));
-  }, []);
-
-  return { stats, loading, error };
+  return {
+    stats: query.data ?? null,
+    loading: query.isLoading,
+    error: query.error,
+    refetch: query.refetch,
+  };
 }

@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Building2,
@@ -21,7 +22,7 @@ const navItems = [
   { label: "Dépenses", to: "/dashboard/depenses", icon: Receipt },
 ];
 
-export default function Sidebar({ collapsed = false, onLogout }) {
+const Sidebar = memo(function Sidebar({ collapsed = false, onLogout }) {
   const location = useLocation();
   const active = location.pathname;
 
@@ -32,13 +33,18 @@ export default function Sidebar({ collapsed = false, onLogout }) {
         collapsed ? "w-[76px]" : "w-[280px]",
       )}
     >
-      <div className="flex h-16 items-center gap-3 px-4">
-        <div className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
-          <Landmark className="h-4 w-4" />
+      <div className="flex h-20 items-center gap-3.5 px-6">
+        <div className="flex size-10 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white shadow-lg shadow-blue-500/20 dark:shadow-blue-950/40 transition-shadow">
+          <Landmark className="h-5 w-5" />
         </div>
         {!collapsed ? (
-          <div className="text-sm font-semibold leading-tight">
-            Gestion Syndic
+          <div className="flex flex-col">
+            <span className="text-sm font-bold tracking-tight text-foreground transition-colors">
+              Gestion Syndic
+            </span>
+            <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest transition-colors">
+              Plateforme
+            </span>
           </div>
         ) : null}
       </div>
@@ -52,17 +58,19 @@ export default function Sidebar({ collapsed = false, onLogout }) {
               to={item.to}
               className={({ isActive }) =>
                 cn(
-                  "group flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors",
+                  "group flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-all duration-300",
                   isActive
-                    ? "bg-blue-50 text-blue-700"
-                    : "text-muted-foreground hover:bg-muted/30",
+                    ? "bg-blue-600/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400 font-semibold"
+                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
                 )
               }
             >
               <Icon
                 className={cn(
                   "h-4 w-4 shrink-0 transition-colors",
-                  active.startsWith(item.to) ? "text-blue-700" : "text-muted-foreground",
+                  active.startsWith(item.to) 
+                    ? "text-blue-600 dark:text-blue-400" 
+                    : "text-muted-foreground group-hover:text-foreground",
                 )}
               />
               {!collapsed ? <span className="truncate">{item.label}</span> : null}
@@ -71,20 +79,25 @@ export default function Sidebar({ collapsed = false, onLogout }) {
         })}
       </nav>
 
-      <div className="mt-auto px-2 pb-4">
+      <div className="mt-auto px-2 pb-4 space-y-1">
+
+
         <Button
           type="button"
           variant="ghost"
           className={cn(
-            "w-full justify-start gap-3 rounded-xl px-3 py-2 text-muted-foreground hover:bg-red-50 hover:text-red-600 transition-colors",
+            "w-full justify-start gap-3 rounded-xl px-3 py-2 text-muted-foreground hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30 dark:hover:text-red-400 transition-colors",
             collapsed ? "px-2" : "",
           )}
           onClick={onLogout}
         >
-          <LogOut className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
+          <LogOut className="h-4 w-4" />
           {!collapsed ? <span>Déconnexion</span> : null}
         </Button>
       </div>
     </aside>
   );
-}
+});
+
+export default Sidebar;
+

@@ -19,7 +19,7 @@ class PaiementIndexRequest extends FormRequest
     {
         return [
             'page' => ['sometimes', 'integer', 'min:1'],
-            'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
+            'per_page' => ['sometimes', 'integer', 'min:1', 'max:1000'],
             'search' => ['sometimes', 'string', 'max:255'],
             'immeuble_id' => [
                 'sometimes',
@@ -27,6 +27,11 @@ class PaiementIndexRequest extends FormRequest
                 Rule::exists('immeubles', 'id')->where(fn ($q) => $q->where('user_id', auth()->id())),
             ],
             'statut' => ['sometimes', Rule::in(['payé', 'en_attente', 'en_retard'])],
+            'resident_id' => [
+                'sometimes',
+                'uuid',
+                Rule::exists('residents', 'id')->where(fn ($q) => $q->where('user_id', auth()->id())),
+            ],
             'date_from' => ['sometimes', 'date'],
             'date_to' => ['sometimes', 'date', 'after_or_equal:date_from'],
         ];

@@ -18,6 +18,7 @@ class Paiement extends Model
         'montant',
         'date_paiement',
         'statut',
+        'type',
     ];
 
     protected function casts(): array

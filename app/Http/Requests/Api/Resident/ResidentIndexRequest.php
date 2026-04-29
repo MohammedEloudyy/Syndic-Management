@@ -19,7 +19,7 @@ class ResidentIndexRequest extends FormRequest
     {
         return [
             'page' => ['sometimes', 'integer', 'min:1'],
-            'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
+            'per_page' => ['sometimes', 'integer', 'min:1', 'max:1000'],
             'search' => ['sometimes', 'string', 'max:255'],
             'immeuble_id' => [
                 'sometimes',

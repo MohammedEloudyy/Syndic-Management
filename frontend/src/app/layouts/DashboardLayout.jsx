@@ -1,12 +1,24 @@
 import { Outlet } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Navbar from "@/features/dashboard/components/Navbar";
 import Sidebar from "@/features/dashboard/components/Sidebar";
 import { useAuth } from "@/features/auth/useAuth";
+import { useTheme } from "@/components/common/ThemeProvider";
 
 export default function DashboardLayout() {
+  const { theme } = useTheme();
   const { logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    if (theme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+    // Cleanup on unmount (e.g. logout)
+    return () => document.documentElement.classList.remove("dark");
+  }, [theme]);
 
   const handleLogout = async () => {
     setMobileOpen(false);
@@ -16,8 +28,8 @@ export default function DashboardLayout() {
   const sidebar = <Sidebar collapsed={false} onLogout={handleLogout} />;
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="flex">
+    <div className="min-h-screen bg-background font-outfit">
+      <div className="flex bg-background text-foreground transition-colors duration-300">
         <div className="sticky top-0 hidden h-screen md:block">{sidebar}</div>
 
         {mobileOpen ? (

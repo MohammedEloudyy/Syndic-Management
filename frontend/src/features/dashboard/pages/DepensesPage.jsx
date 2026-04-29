@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, memo } from "react";
 import { Pencil, Trash2, Receipt, Loader2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -26,6 +26,7 @@ import {
   updateDepense,
 } from "@/features/dashboard/api/dashboardApi";
 import Pagination from "@/components/common/Pagination";
+import { queryClient } from "@/lib/queryClient";
 
 const schema = z.object({
   title: z.string().min(2, "Titre requis"),
@@ -36,18 +37,17 @@ const schema = z.object({
   description: z.string().optional(),
 });
 
-
-
 function getCategoryStyles(category) {
   const v = (category || "").toLowerCase();
-  if (v.includes("maintenance")) return { color: "text-indigo-700", bg: "bg-indigo-50", border: "border-indigo-100", dot: "bg-indigo-500" };
-  if (v.includes("nettoyage")) return { color: "text-blue-700", bg: "bg-blue-50", border: "border-blue-100", dot: "bg-blue-500" };
-  if (v.includes("élec") || v.includes("elec")) return { color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-100", dot: "bg-amber-500" };
-  if (v.includes("eau")) return { color: "text-cyan-700", bg: "bg-cyan-50", border: "border-cyan-100", dot: "bg-cyan-500" };
-  if (v.includes("ascenseur")) return { color: "text-purple-700", bg: "bg-purple-50", border: "border-purple-100", dot: "bg-purple-500" };
-  if (v.includes("sécurité") || v.includes("securite")) return { color: "text-rose-700", bg: "bg-rose-50", border: "border-rose-100", dot: "bg-rose-500" };
-  if (v.includes("jardin")) return { color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100", dot: "bg-emerald-500" };
-  return { color: "text-slate-700", bg: "bg-slate-50", border: "border-slate-100", dot: "bg-slate-500" };
+  if (v.includes("maintenance")) return { color: "text-indigo-700 dark:text-indigo-400", bg: "bg-indigo-50 dark:bg-indigo-500/10", border: "border-indigo-100 dark:border-indigo-500/20", dot: "bg-indigo-500" };
+  if (v.includes("nettoyage")) return { color: "text-blue-700 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-500/10", border: "border-blue-100 dark:border-blue-500/20", dot: "bg-blue-500" };
+  if (v.includes("élec") || v.includes("elec")) return { color: "text-amber-700 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-500/10", border: "border-amber-100 dark:border-amber-500/20", dot: "bg-amber-500" };
+  if (v.includes("eau")) return { color: "text-cyan-700 dark:text-cyan-400", bg: "bg-cyan-50 dark:bg-cyan-500/10", border: "border-cyan-100 dark:border-cyan-500/20", dot: "bg-cyan-500" };
+  if (v.includes("ascenseur")) return { color: "text-purple-700 dark:text-purple-400", bg: "bg-purple-50 dark:bg-purple-500/10", border: "border-purple-100 dark:border-purple-500/20", dot: "bg-purple-500" };
+  if (v.includes("sécurité") || v.includes("securite")) return { color: "text-rose-700 dark:text-rose-400", bg: "bg-rose-50 dark:bg-rose-500/10", border: "border-rose-100 dark:border-rose-500/20", dot: "bg-rose-500" };
+  if (v.includes("jardin")) return { color: "text-emerald-700 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-500/10", border: "border-emerald-100 dark:border-emerald-500/20", dot: "bg-emerald-500" };
+  if (v.includes("autres") || v.includes("autre")) return { color: "text-sky-700 dark:text-sky-400", bg: "bg-sky-50 dark:bg-sky-500/10", border: "border-sky-100 dark:border-sky-500/20", dot: "bg-sky-500" };
+  return { color: "text-slate-700 dark:text-slate-400", bg: "bg-slate-50 dark:bg-slate-500/10", border: "border-slate-100 dark:border-slate-500/20", dot: "bg-slate-500" };
 }
 
 function errorMessage(err) {
@@ -58,6 +58,52 @@ function errorMessage(err) {
   );
 }
 
+const DepenseRow = memo(function DepenseRow({ d, building, onEdit, onDelete }) {
+  const styles = getCategoryStyles(d.category);
+  return (
+    <TableRow className="hover:bg-muted/50 transition-colors border-border">
+      <TableCell>
+        <div className="flex items-center gap-2">
+          <Receipt className="h-4 w-4 text-blue-700" />
+          <div className="leading-tight">
+            <div className="font-medium">{d.title}</div>
+            <div className="text-xs text-muted-foreground">{d.description}</div>
+          </div>
+        </div>
+      </TableCell>
+      <TableCell>{building?.name ?? "—"}</TableCell>
+      <TableCell>
+        <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium border ${styles.bg} ${styles.color} ${styles.border}`}>
+          <span className={`h-1 w-1 rounded-full ${styles.dot}`} />
+          {d.category}
+        </div>
+      </TableCell>
+      <TableCell className="text-right">{d.amount} MAD</TableCell>
+      <TableCell>{d.date}</TableCell>
+      <TableCell className="text-right">
+        <div className="flex items-center justify-end gap-3">
+          <button
+            type="button"
+            className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+            onClick={() => onEdit(d)}
+            aria-label={`Modifier ${d.title}`}
+          >
+            <Pencil className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+            onClick={() => onDelete(d.id)}
+            aria-label={`Supprimer ${d.title}`}
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+});
+
 export default function DepensesPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -67,13 +113,13 @@ export default function DepensesPage() {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 500);
 
-  const depensesQ = useResource(getDepenses, { 
+  const depensesQ = useResource(getDepenses, {
     immeuble_id: buildingFilter === "all" ? undefined : buildingFilter,
     categorie: categoryFilter === "all" ? undefined : categoryFilter,
     search: debouncedSearch || undefined,
-    page 
+    page
   });
-  const immeublesQ = useResource(getImmeubles);
+  const immeublesQ = useResource(getImmeubles, { per_page: 1000 });
 
   const immeubles = immeublesQ.data ?? [];
   const firstBuildingId = immeubles[0]?.id ?? "";
@@ -91,7 +137,7 @@ export default function DepensesPage() {
     },
   });
 
-  const immeublesById = useMemo(() => new Map(immeubles.map((i) => [i.id, i])), [immeubles]);
+
 
   const rawItems = depensesQ.data ?? [];
   const total = depensesQ.meta?.stats?.total ?? 0;
@@ -119,6 +165,7 @@ export default function DepensesPage() {
     try {
       await deleteDepense(id);
       toast.success("Dépense supprimée avec succès");
+      queryClient.invalidateQueries();
       await depensesQ.refetch();
     } catch (e) {
       toast.error(errorMessage(e));
@@ -137,6 +184,7 @@ export default function DepensesPage() {
       setEditingId(null);
       setShowForm(false);
       resetForm(null);
+      queryClient.invalidateQueries();
       await depensesQ.refetch();
     } catch (e) {
       toast.error(errorMessage(e));
@@ -145,13 +193,11 @@ export default function DepensesPage() {
 
   const loading = depensesQ.loading || immeublesQ.loading;
   const fetchError = depensesQ.error || immeublesQ.error;
+
   const items = useMemo(() => {
-    return rawItems.filter(item => {
-      const matchBuilding = buildingFilter === "all" || item.buildingId === buildingFilter;
-      const matchCategory = categoryFilter === "all" || item.category === categoryFilter;
-      return matchBuilding && matchCategory;
-    });
-  }, [rawItems, buildingFilter, categoryFilter]);
+    return rawItems;
+  }, [rawItems]);
+
   const isSubmitting = form.formState.isSubmitting;
 
   if (loading && !depensesQ.data) {
@@ -190,8 +236,6 @@ export default function DepensesPage() {
           + Ajouter une dépense
         </Button>
       </div>
-
-
 
       <Card className="card-modern mb-5">
         <CardContent className="p-6">
@@ -366,62 +410,28 @@ export default function DepensesPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {items.map((d) => {
-                    const building = immeublesById.get(d.buildingId);
-                    return (
-                      <TableRow key={d.id} className="modern-table-row border-b-slate-100/50">
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Receipt className="h-4 w-4 text-blue-700" />
-                            <div className="leading-tight">
-                              <div className="font-medium">{d.title}</div>
-                              <div className="text-xs text-muted-foreground">{d.description}</div>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>{building?.name ?? "—"}</TableCell>
-                        <TableCell>
-                          {(() => {
-                            const styles = getCategoryStyles(d.category);
-                            return (
-                              <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium border ${styles.bg} ${styles.color} ${styles.border}`}>
-                                <span className={`h-1 w-1 rounded-full ${styles.dot}`} />
-                                {d.category}
-                              </div>
-                            );
-                          })()}
-                        </TableCell>
-                        <TableCell className="text-right">{d.amount} MAD</TableCell>
-                        <TableCell>{d.date}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-3">
-                            <button
-                              type="button"
-                              className="text-blue-700 hover:text-blue-800"
-                              onClick={() => onEdit(d)}
-                              aria-label={`Modifier ${d.title}`}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </button>
-                            <button
-                              type="button"
-                              className="text-red-600 hover:text-red-700"
-                              onClick={() => onDelete(d.id)}
-                              aria-label={`Supprimer ${d.title}`}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                  {items.map((d) => (
+                    <DepenseRow
+                      key={d.id}
+                      d={d}
+                      building={d.immeuble}
+                      onEdit={onEdit}
+                      onDelete={onDelete}
+                    />
+                  ))}
+                  {items.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                        Aucune dépense trouvée.
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </CardContent>
           </Card>
 
-          <Pagination 
+          <Pagination
             currentPage={depensesQ.meta?.current_page || 1}
             lastPage={depensesQ.meta?.last_page || 1}
             onPageChange={setPage}

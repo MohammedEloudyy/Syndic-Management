@@ -19,14 +19,14 @@ class AppartementIndexRequest extends FormRequest
     {
         return [
             'page' => ['sometimes', 'integer', 'min:1'],
-            'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
+            'per_page' => ['sometimes', 'integer', 'min:1', 'max:1000'],
             'search' => ['sometimes', 'string', 'max:255'],
             'immeuble_id' => [
                 'sometimes',
                 'uuid',
                 Rule::exists('immeubles', 'id')->where(fn ($q) => $q->where('user_id', auth()->id())),
             ],
-            'statut' => ['sometimes', Rule::in(['occupé', 'vacant'])],
+            'status' => ['sometimes', Rule::in(['occupé', 'vacant'])],
             'date_from' => ['sometimes', 'date'],
             'date_to' => ['sometimes', 'date', 'after_or_equal:date_from'],
         ];

@@ -2,106 +2,145 @@
 
 namespace App\Services;
 
-use App\Models\Appartement;
 use App\Models\Depense;
-use App\Models\Immeuble;
 use App\Models\Paiement;
-use App\Models\Resident;
 use App\Models\User;
+use App\Services\CacheService;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * DashboardService
+ * 
+ * Modular service for dashboard data orchestration.
+ * Uses domain-specific caching and optimized SQL aggregation.
+ */
 class DashboardService
 {
+    public function __construct(
+        protected CacheService $cacheService
+    ) {}
+
     /**
-     * @return array<string, mixed>
+     * Get the aggregated overview for the dashboard.
      */
-    public function stats(User $user): array
+    public function getOverview(User $user): array
     {
         $userId = $user->id;
+        $cacheKey = $this->cacheService->getDashboardKey($userId);
 
-        // Batch entity counts in a single query
+        return Cache::remember($cacheKey, 60, function () use ($user) {
+            return [
+                'stats' => $this->getGlobalStats($user->id),
+                'charts' => $this->getMonthlyTrends($user->id),
+                'recent_activities' => $this->getRecentActivities($user->id),
+            ];
+        });
+    }
+
+    /**
+     * Compute global entity counts and financial totals.
+     */
+    private function getGlobalStats(int $userId): array
+    {
+        // Entity counts using indexed user_id
         $counts = DB::query()
             ->selectRaw('
-                (SELECT COUNT(*) FROM immeubles WHERE user_id = ?) as total_immeubles,
-                (SELECT COUNT(*) FROM appartements WHERE user_id = ?) as total_appartements,
-                (SELECT COUNT(*) FROM residents WHERE user_id = ?) as total_residents
+                (SELECT COUNT(*) FROM immeubles WHERE user_id = ?) as buildings,
+                (SELECT COUNT(*) FROM appartements WHERE user_id = ?) as apartments,
+                (SELECT COUNT(*) FROM residents WHERE user_id = ?) as residents
             ', [$userId, $userId, $userId])
             ->first();
 
-        // Batch financial sums in a single query
+        // Financial totals
         $finances = DB::query()
             ->selectRaw('
-                (SELECT COALESCE(SUM(montant), 0) FROM paiements WHERE user_id = ?) as total_paiements,
-                (SELECT COALESCE(SUM(montant), 0) FROM depenses WHERE user_id = ?) as total_depenses
+                (SELECT COALESCE(SUM(montant), 0) FROM paiements WHERE user_id = ?) as total_revenue,
+                (SELECT COALESCE(SUM(montant), 0) FROM depenses WHERE user_id = ?) as total_expenses
             ', [$userId, $userId])
             ->first();
 
-        // Payment status counts in one query
-        $paymentStatuses = Paiement::query()
-            ->where('user_id', $userId)
-            ->selectRaw("
-                SUM(CASE WHEN statut = 'payé' THEN 1 ELSE 0 END) as paye,
-                SUM(CASE WHEN statut = 'en_attente' THEN 1 ELSE 0 END) as en_attente,
-                SUM(CASE WHEN statut = 'en_retard' THEN 1 ELSE 0 END) as en_retard
-            ")
-            ->first();
+        // Payment status distribution
+        $statusCounts = Paiement::where('user_id', $userId)
+            ->select('statut', DB::raw('count(*) as count'))
+            ->groupBy('statut')
+            ->pluck('count', 'statut')
+            ->toArray();
 
         return [
-            'total_immeubles' => (int) $counts->total_immeubles,
-            'total_appartements' => (int) $counts->total_appartements,
-            'total_residents' => (int) $counts->total_residents,
-            'total_paiements' => (float) $finances->total_paiements,
-            'total_depenses' => (float) $finances->total_depenses,
-            'payment_status_stats' => [
-                ['name' => 'Payé', 'value' => (int) ($paymentStatuses->paye ?? 0)],
-                ['name' => 'En attente', 'value' => (int) ($paymentStatuses->en_attente ?? 0)],
-                ['name' => 'En retard', 'value' => (int) ($paymentStatuses->en_retard ?? 0)],
+            'counts' => [
+                'buildings' => (int) $counts->buildings,
+                'apartments' => (int) $counts->apartments,
+                'residents' => (int) $counts->residents,
             ],
-            'monthly_stats' => $this->monthlyStats($userId),
+            'finances' => [
+                'revenue' => (float) $finances->total_revenue,
+                'expenses' => (float) $finances->total_expenses,
+                'balance' => (float) ($finances->total_revenue - $finances->total_expenses),
+            ],
+            'payment_distribution' => [
+                ['name' => 'Payé', 'value' => (int) ($statusCounts['payé'] ?? 0)],
+                ['name' => 'En attente', 'value' => (int) ($statusCounts['en_attente'] ?? 0)],
+                ['name' => 'En retard', 'value' => (int) ($statusCounts['en_retard'] ?? 0)],
+            ]
         ];
     }
 
     /**
-     * @return array<int, array<string, mixed>>
+     * Compute revenue vs expenses trends for the last 6 months.
      */
-    private function monthlyStats(int $userId): array
+    private function getMonthlyTrends(int $userId): array
     {
         $start = now()->startOfMonth()->subMonths(5)->toDateString();
         $end = now()->endOfMonth()->toDateString();
 
         $driver = DB::getDriverName();
-        $format = $driver === 'sqlite' ? "strftime('%Y-%m', date_paiement)" : "DATE_FORMAT(date_paiement, '%Y-%m')";
+        $payFormat = $driver === 'sqlite' ? "strftime('%Y-%m', date_paiement)" : "DATE_FORMAT(date_paiement, '%Y-%m')";
+        $depFormat = $driver === 'sqlite' ? "strftime('%Y-%m', date_depense)" : "DATE_FORMAT(date_depense, '%Y-%m')";
 
-        $pByMonth = Paiement::query()
-            ->where('user_id', $userId)
+        $revenues = Paiement::where('user_id', $userId)
             ->whereBetween('date_paiement', [$start, $end])
-            ->selectRaw("$format as month, SUM(montant) as total")
-            ->groupByRaw($format)
-            ->pluck('total', 'month')
-            ->map(fn ($v) => (float) $v)
-            ->toArray();
+            ->selectRaw("$payFormat as month, SUM(montant) as total")
+            ->groupBy('month')
+            ->pluck('total', 'month');
 
-        $formatD = $driver === 'sqlite' ? "strftime('%Y-%m', date_depense)" : "DATE_FORMAT(date_depense, '%Y-%m')";
-
-        $dByMonth = Depense::query()
-            ->where('user_id', $userId)
+        $expenses = Depense::where('user_id', $userId)
             ->whereBetween('date_depense', [$start, $end])
-            ->selectRaw("$formatD as month, SUM(montant) as total")
-            ->groupByRaw($formatD)
-            ->pluck('total', 'month')
-            ->map(fn ($v) => (float) $v)
-            ->toArray();
+            ->selectRaw("$depFormat as month, SUM(montant) as total")
+            ->groupBy('month')
+            ->pluck('total', 'month');
 
-        $stats = [];
+        $data = [];
         for ($i = 5; $i >= 0; $i--) {
             $month = now()->startOfMonth()->subMonths($i)->format('Y-m');
-            $stats[] = [
+            $data[] = [
                 'month' => $month,
-                'paiements' => round($pByMonth[$month] ?? 0, 2),
-                'depenses' => round($dByMonth[$month] ?? 0, 2),
+                'paiements' => (float) ($revenues[$month] ?? 0),
+                'depenses' => (float) ($expenses[$month] ?? 0),
             ];
         }
 
-        return $stats;
+        return $data;
+    }
+
+    /**
+     * Get the latest activities (Recent payments).
+     */
+    private function getRecentActivities(int $userId): array
+    {
+        return Paiement::where('user_id', $userId)
+            ->with(['resident.appartement:id,number'])
+            ->latest('created_at')
+            ->limit(5)
+            ->get()
+            ->map(fn($p) => [
+                'id' => $p->id,
+                'type' => 'paiement',
+                'title' => "Paiement de " . ($p->resident->full_name ?? 'Resident'),
+                'subtitle' => "Appt " . ($p->resident->appartement->number ?? '-') . " • " . $p->montant . " MAD",
+                'status' => $p->statut,
+                'date' => $p->created_at->diffForHumans(),
+            ])
+            ->toArray();
     }
 }

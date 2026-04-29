@@ -30,6 +30,10 @@ class ImmeubleService
             });
         }
 
+        if (! empty($validated['city'])) {
+            $query->where('city', $validated['city']);
+        }
+
         if (! empty($validated['date_from'])) {
             $query->whereDate('created_at', '>=', $validated['date_from']);
         }

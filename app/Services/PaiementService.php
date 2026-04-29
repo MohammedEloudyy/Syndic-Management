@@ -75,6 +75,7 @@ class PaiementService
                 'montant' => $validated['montant'],
                 'date_paiement' => $validated['date_paiement'],
                 'statut' => $validated['statut'],
+                'type' => $validated['type'] ?? 'Charges mensuelles',
             ]);
         });
     }
@@ -97,6 +98,9 @@ class PaiementService
             }
             if (array_key_exists('statut', $validated)) {
                 $data['statut'] = $validated['statut'];
+            }
+            if (array_key_exists('type', $validated)) {
+                $data['type'] = $validated['type'];
             }
 
             if ($data !== []) {

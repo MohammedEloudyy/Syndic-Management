@@ -1,6 +1,7 @@
+import { memo } from "react";
 import { cn } from "@/lib/utils";
 
-export default function StatsCard({ value, label, icon: Icon, className }) {
+const StatsCard = memo(function StatsCard({ value, label, icon: Icon, className }) {
   return (
     <div
       className={cn(
@@ -10,7 +11,7 @@ export default function StatsCard({ value, label, icon: Icon, className }) {
     >
       <div className="flex items-center gap-3">
         {Icon ? (
-          <div className="flex size-10 items-center justify-center rounded-xl bg-blue-600/10 text-blue-700">
+          <div className="flex size-10 items-center justify-center rounded-xl bg-blue-600/10 text-blue-700 dark:text-blue-400">
             <Icon className="h-5 w-5" />
           </div>
         ) : null}
@@ -21,4 +22,7 @@ export default function StatsCard({ value, label, icon: Icon, className }) {
       </div>
     </div>
   );
-}
+});
+
+export default StatsCard;
+

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, memo } from "react";
 import { Building2, Pencil, Trash2, Loader2, Search } from "lucide-react";
 import {
   getImmeubles,
@@ -18,6 +18,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import Pagination from "@/components/common/Pagination";
+import { queryClient } from "@/lib/queryClient";
 
 const schema = z.object({
   name: z.string().min(2, "Nom requis"),
@@ -34,10 +35,48 @@ function errorMessage(err) {
   );
 }
 
+const ImmeubleRow = memo(function ImmeubleRow({ immeuble, onEdit, onDelete }) {
+  return (
+    <TableRow className="hover:bg-muted/50 transition-colors">
+      <TableCell>
+        <div className="flex items-center gap-2">
+          <Building2 className="h-4 w-4 text-blue-700" />
+          <span className="font-medium">{immeuble.name}</span>
+        </div>
+      </TableCell>
+      <TableCell className="text-muted-foreground text-xs">{immeuble.address ?? "-"}</TableCell>
+      <TableCell className="text-muted-foreground text-xs">{immeuble.city ?? "-"}</TableCell>
+      <TableCell>
+        <StatusBadge status={Number(immeuble.apartmentCount) > 0 ? "occupé" : "vacant"} />
+      </TableCell>
+      <TableCell className="text-right">{immeuble.apartmentCount ?? "0"}</TableCell>
+      <TableCell className="text-right">
+        <div className="flex items-center justify-end gap-3">
+          <button
+            type="button"
+            className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+            onClick={() => onEdit(immeuble)}
+            aria-label={`Modifier ${immeuble.name}`}
+          >
+            <Pencil className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+            onClick={() => onDelete(immeuble.id)}
+            aria-label={`Supprimer ${immeuble.name}`}
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+});
+
 export default function ImmeublesPage() {
   const [editingId, setEditingId] = useState(null);
   const [showForm, setShowForm] = useState(false);
-  const [actionError, setActionError] = useState("");
   const [cityFilter, setCityFilter] = useState("all");
   const [page, setPage] = useState(1);
 
@@ -51,10 +90,7 @@ export default function ImmeublesPage() {
     return Array.from(set).sort();
   }, [rawItems]);
 
-  const immeubles = useMemo(() => {
-    if (cityFilter === "all") return rawItems;
-    return rawItems.filter(i => i.city === cityFilter);
-  }, [rawItems, cityFilter]);
+  const immeubles = rawItems;
 
   const form = useForm({
     resolver: zodResolver(schema),
@@ -83,10 +119,10 @@ export default function ImmeublesPage() {
 
   const handleDelete = async (id) => {
     if (!window.confirm("Supprimer cet immeuble ?")) return;
-    setActionError("");
     try {
       await deleteImmeuble(id);
       toast.success("Immeuble supprimé avec succès");
+      queryClient.invalidateQueries();
       refetch();
     } catch (e) {
       toast.error(errorMessage(e));
@@ -94,8 +130,6 @@ export default function ImmeublesPage() {
   };
 
   const onSubmit = async (values) => {
-    setActionError("");
-    // Map frontend field to backend field
     const payload = {
       ...values,
       apartment_count: values.apartmentCount
@@ -112,6 +146,7 @@ export default function ImmeublesPage() {
       setEditingId(null);
       setShowForm(false);
       resetForm(null);
+      queryClient.invalidateQueries();
       refetch();
     } catch (e) {
       toast.error(errorMessage(e));
@@ -144,12 +179,6 @@ export default function ImmeublesPage() {
           resetForm(null);
         }}
       />
-
-      {actionError ? (
-        <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-          {actionError}
-        </div>
-      ) : null}
 
       {showForm ? (
         <Card className="mb-5">
@@ -265,49 +294,21 @@ export default function ImmeublesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {immeubles && immeubles.length === 0 && (
+              {immeubles.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="px-4 py-6 text-center text-gray-400">
+                  <TableCell colSpan={6} className="px-4 py-6 text-center text-muted-foreground/60">
                     Aucun immeuble trouvé.
                   </TableCell>
                 </TableRow>
               )}
 
-              {immeubles && immeubles.map((immeuble) => (
-                <TableRow key={immeuble.id} className="hover:bg-gray-50">
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Building2 className="h-4 w-4 text-blue-700" />
-                      <span className="font-medium">{immeuble.name}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-gray-500 text-xs">{immeuble.address ?? "-"}</TableCell>
-                  <TableCell className="text-gray-500 text-xs">{immeuble.city ?? "-"}</TableCell>
-                  <TableCell>
-                    <StatusBadge status={Number(immeuble.apartmentCount) > 0 ? "occupé" : "vacant"} />
-                  </TableCell>
-                  <TableCell className="text-right">{immeuble.apartmentCount ?? "0"}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-3">
-                      <button
-                        type="button"
-                        className="text-blue-700 hover:text-blue-800"
-                        onClick={() => onEdit(immeuble)}
-                        aria-label={`Modifier ${immeuble.name}`}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
-                        className="text-red-600 hover:text-red-700"
-                        onClick={() => handleDelete(immeuble.id)}
-                        aria-label={`Supprimer ${immeuble.name}`}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </TableCell>
-                </TableRow>
+              {immeubles.map((immeuble) => (
+                <ImmeubleRow
+                  key={immeuble.id}
+                  immeuble={immeuble}
+                  onEdit={onEdit}
+                  onDelete={handleDelete}
+                />
               ))}
             </TableBody>
           </Table>

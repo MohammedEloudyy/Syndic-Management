@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, memo } from "react";
 import { Search, Loader2, Pencil, Trash2 } from "lucide-react";
 import StatusBadge from "@/components/common/StatusBadge";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ import {
   deletePaiement,
 } from "@/features/dashboard/api/dashboardApi";
 import Pagination from "@/components/common/Pagination";
+import { queryClient } from "@/lib/queryClient";
 
 const schema = z.object({
   residentId: z.string().min(1, "Résident requis"),
@@ -38,6 +39,54 @@ function errorMessage(err) {
   );
 }
 
+const PaiementRow = memo(function PaiementRow({ p, onEdit, onDelete, onPay }) {
+  return (
+    <TableRow className="hover:bg-muted/50 transition-colors border-border">
+      <TableCell>{p.residentName}</TableCell>
+      <TableCell>{p.apartmentNumber}</TableCell>
+      <TableCell>{p.type}</TableCell>
+      <TableCell className="text-right">{p.amount} MAD</TableCell>
+      <TableCell>{p.limitDate}</TableCell>
+      <TableCell>
+        <div className="flex items-center gap-2">
+          <StatusBadge status={p.status} />
+          {(p.status === "en_attente" || p.status === "en attente") ? (
+            <Button
+              size="xs"
+              type="button"
+              onClick={() => onPay(p.id)}
+              variant="outline"
+              className="h-6 rounded-md border-blue-500/20 bg-blue-500/10 text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white transition-all duration-300"
+            >
+              payer
+            </Button>
+          ) : null}
+        </div>
+      </TableCell>
+      <TableCell className="text-right">
+        <div className="flex items-center justify-end gap-3">
+          <button
+            type="button"
+            className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+            onClick={() => onEdit(p)}
+            aria-label={`Modifier le paiement`}
+          >
+            <Pencil className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+            onClick={() => onDelete(p.id)}
+            aria-label={`Supprimer le paiement`}
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+});
+
 export default function PaiementsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -47,26 +96,31 @@ export default function PaiementsPage() {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 500);
 
-  const paiementsQ = useResource(getPaiements, { 
+  const paiementsQ = useResource(getPaiements, {
     statut: statusFilter === "all" ? undefined : statusFilter,
     resident_id: residentFilter === "all" ? undefined : residentFilter,
     search: debouncedSearch || undefined,
-    page 
+    page
   });
 
-  const residentsQ = useResource(getResidents);
-  const appartementsQ = useResource(getAppartements);
+  const residentsQ = useResource(getResidents, { per_page: 1000 });
+  const appartementsQ = useResource(getAppartements, { per_page: 1000 });
 
   const residents = residentsQ.data ?? [];
   const appartements = appartementsQ.data ?? [];
   const items = paiementsQ.data ?? [];
   const firstResidentId = residents[0]?.id ?? "";
 
-  const residentsById = useMemo(() => new Map(residents.map((r) => [r.id, r])), [residents]);
-  const apartmentsById = useMemo(
-    () => new Map(appartements.map((a) => [a.id, a])),
-    [appartements],
-  );
+  const uniqueResidents = useMemo(() => {
+    const seen = new Set();
+    return residents.filter(r => {
+      if (!r.id || seen.has(r.id)) return false;
+      seen.add(r.id);
+      return true;
+    });
+  }, [residents]);
+
+
 
   const serverStats = paiementsQ.meta?.stats || { total: 0, paid: 0, pending: 0 };
   const totalAmount = serverStats.total;
@@ -107,6 +161,7 @@ export default function PaiementsPage() {
     try {
       await deletePaiement(id);
       toast.success("Paiement supprimé avec succès");
+      queryClient.invalidateQueries();
       await paiementsQ.refetch();
     } catch (e) {
       toast.error(errorMessage(e));
@@ -125,6 +180,7 @@ export default function PaiementsPage() {
       setShowForm(false);
       setEditingId(null);
       resetForm(null);
+      queryClient.invalidateQueries();
       await paiementsQ.refetch();
     } catch (e) {
       toast.error(errorMessage(e));
@@ -259,11 +315,7 @@ export default function PaiementsPage() {
                 >
                   Annuler
                 </Button>
-                <Button
-                  type="submit"
-                  disabled={isSubmitting}
-                  variant="modern"
-                >
+                <Button type="submit" variant="modern" className="px-6 h-8" disabled={isSubmitting}>
                   {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                   {editingId ? "Modifier le paiement" : "Confirmer l'ajout"}
                 </Button>
@@ -304,7 +356,7 @@ export default function PaiementsPage() {
                   }}
                 >
                   <option value="all">Tous les résidents</option>
-                  {residents.map((r) => (
+                  {uniqueResidents.map((r) => (
                     <option key={r.id} value={r.id}>
                       {r.fullName}
                     </option>
@@ -343,62 +395,28 @@ export default function PaiementsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {items.map((p) => {
-                    const resident = residentsById.get(p.residentId);
-                    const apt = apartmentsById.get(p.apartmentId);
-
-                    return (
-                      <TableRow key={p.id} className="modern-table-row border-b-slate-100/50">
-                        <TableCell>{resident?.fullName ?? "—"}</TableCell>
-                        <TableCell>{apt?.number ?? "—"}</TableCell>
-                        <TableCell>{p.type}</TableCell>
-                        <TableCell className="text-right">{p.amount} MAD</TableCell>
-                        <TableCell>{p.limitDate}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <StatusBadge status={p.status} />
-                            {p.status === "en_attente" || p.status === "en attente" ? (
-                              <Button
-                                size="xs"
-                                type="button"
-                                onClick={() => onPay(p.id)}
-                                variant="outline"
-                                className="h-6 rounded-md border-blue-200 bg-blue-50/50 text-[10px] font-bold uppercase tracking-wider text-blue-600 hover:bg-blue-600 hover:text-white transition-all duration-300"
-                              >
-                                payer
-                              </Button>
-                            ) : null}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-3">
-                            <button
-                              type="button"
-                              className="text-blue-700 hover:text-blue-800"
-                              onClick={() => onEdit(p)}
-                              aria-label={`Modifier le paiement`}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </button>
-                            <button
-                              type="button"
-                              className="text-red-600 hover:text-red-700"
-                              onClick={() => onDelete(p.id)}
-                              aria-label={`Supprimer le paiement`}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                  {items.map((p) => (
+                    <PaiementRow
+                      key={p.id}
+                      p={p}
+                      onEdit={onEdit}
+                      onDelete={onDelete}
+                      onPay={onPay}
+                    />
+                  ))}
+                  {items.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                        Aucun paiement trouvé.
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </CardContent>
           </Card>
 
-          <Pagination 
+          <Pagination
             currentPage={paiementsQ.meta?.current_page || 1}
             lastPage={paiementsQ.meta?.last_page || 1}
             onPageChange={setPage}

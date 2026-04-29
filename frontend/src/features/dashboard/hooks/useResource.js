@@ -1,37 +1,43 @@
-import { useState, useEffect, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 /**
  * useResource(fetchFn, params?)
  * Returns { data, meta, loading, error, refetch }
- * Works with paginated Laravel responses ({ data: [], meta: {} })
- * and plain array responses.
+ * 
+ * Re-implemented using TanStack Query for:
+ * - Persistent server state orchestration
+ * - Automatic background refetching
+ * - Intelligent cache invalidation
+ * - Consistent state across components
  */
 export function useResource(fetchFn, params = {}) {
-  const [data, setData]       = useState([]);
-  const [meta, setMeta]       = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState(null);
+  const queryKey = [fetchFn.name || "resource", params];
 
-  const fetch = useCallback(() => {
-    setLoading(true);
-    setError(null);
-    fetchFn(params)
-      .then((res) => {
-        // Laravel paginated: { data: [], meta: {} }
-        if (res && Array.isArray(res.data)) {
-          setData(res.data);
-          setMeta(res.meta ?? null);
-        } else {
-          // plain array
-          setData(Array.isArray(res) ? res : []);
-        }
-      })
-      .catch(setError)
-      .finally(() => setLoading(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(params)]);
+  const query = useQuery({
+    queryKey,
+    queryFn: () => fetchFn(params),
+    // Map Laravel's response structure
+    select: (res) => {
+      if (res && Array.isArray(res.data)) {
+        return {
+          data: res.data,
+          meta: res.meta ?? null,
+        };
+      }
+      return {
+        data: Array.isArray(res) ? res : [],
+        meta: null,
+      };
+    },
+  });
 
-  useEffect(() => { fetch(); }, [fetch]);
-
-  return { data, meta, loading, error, refetch: fetch };
+  return {
+    data: query.data?.data ?? [],
+    meta: query.data?.meta ?? null,
+    loading: query.isLoading,
+    error: query.error,
+    refetch: query.refetch,
+    // Add internal query object for more advanced usage if needed
+    query,
+  };
 }

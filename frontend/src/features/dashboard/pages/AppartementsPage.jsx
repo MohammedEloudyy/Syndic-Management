@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, memo } from "react";
 import { Home, Pencil, Trash2, Loader2, Search } from "lucide-react";
 import PageHeader from "@/components/common/PageHeader";
 import StatusBadge from "@/components/common/StatusBadge";
@@ -19,6 +19,7 @@ import {
   updateAppartement,
 } from "@/features/dashboard/api/dashboardApi";
 import Pagination from "@/components/common/Pagination";
+import { queryClient } from "@/lib/queryClient";
 
 const schema = z.object({
   number: z.string().min(1, "Numéro requis"),
@@ -37,6 +38,46 @@ function errorMessage(err) {
   );
 }
 
+const AppartementRow = memo(function AppartementRow({ item, building, onEdit, onDelete }) {
+  return (
+    <TableRow key={item.id} className="hover:bg-muted/50 transition-colors">
+      <TableCell>
+        <div className="flex items-center gap-2">
+          <Home className="h-4 w-4 text-blue-700" />
+          <span className="font-medium">{item.number}</span>
+        </div>
+      </TableCell>
+      <TableCell>{building?.name ?? "—"}</TableCell>
+      <TableCell>{item.floor}</TableCell>
+      <TableCell className="text-right">{item.surface} m²</TableCell>
+      <TableCell className="text-right">{item.rooms}</TableCell>
+      <TableCell>
+        <StatusBadge status={item.status} />
+      </TableCell>
+      <TableCell className="text-right">
+        <div className="flex items-center justify-end gap-3">
+          <button
+            type="button"
+            className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+            onClick={() => onEdit(item)}
+            aria-label={`Modifier ${item.number}`}
+          >
+            <Pencil className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+            onClick={() => onDelete(item.id)}
+            aria-label={`Supprimer ${item.number}`}
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+});
+
 export default function AppartementsPage() {
   const [editingId, setEditingId] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -44,7 +85,7 @@ export default function AppartementsPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [page, setPage] = useState(1);
 
-  const immeublesQ = useResource(getImmeubles);
+  const immeublesQ = useResource(getImmeubles, { per_page: 1000 });
   const appartementsQ = useResource(getAppartements, {
     immeuble_id: buildingFilter === "all" ? undefined : buildingFilter,
     status: statusFilter === "all" ? undefined : statusFilter,
@@ -66,7 +107,7 @@ export default function AppartementsPage() {
     },
   });
 
-  const buildingsById = useMemo(() => new Map(immeubles.map((b) => [b.id, b])), [immeubles]);
+
 
   const resetForm = (item) => {
     form.reset({
@@ -91,6 +132,7 @@ export default function AppartementsPage() {
     try {
       await deleteAppartement(id);
       toast.success("Appartement supprimé avec succès");
+      queryClient.invalidateQueries();
       await appartementsQ.refetch();
     } catch (e) {
       toast.error(errorMessage(e));
@@ -109,6 +151,7 @@ export default function AppartementsPage() {
       setEditingId(null);
       setShowForm(false);
       resetForm(null);
+      queryClient.invalidateQueries();
       await appartementsQ.refetch();
     } catch (e) {
       toast.error(errorMessage(e));
@@ -117,14 +160,7 @@ export default function AppartementsPage() {
 
   const loading = immeublesQ.loading || appartementsQ.loading;
   const fetchError = immeublesQ.error || appartementsQ.error;
-  const rawItems = appartementsQ.data ?? [];
-  const items = useMemo(() => {
-    return rawItems.filter(item => {
-      const matchBuilding = buildingFilter === "all" || item.buildingId === buildingFilter;
-      const matchStatus = statusFilter === "all" || item.status === statusFilter;
-      return matchBuilding && matchStatus;
-    });
-  }, [rawItems, buildingFilter, statusFilter]);
+  const items = appartementsQ.data ?? [];
   const isSubmitting = form.formState.isSubmitting;
 
   if (loading && !appartementsQ.data) {
@@ -155,8 +191,6 @@ export default function AppartementsPage() {
           resetForm(null);
         }}
       />
-
-
 
       {showForm ? (
         <Card className="mb-5">
@@ -223,11 +257,11 @@ export default function AppartementsPage() {
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-foreground">Statut</label>
                   <select
-                    className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
+                    className="modern-input h-8 w-full"
                     {...form.register("status")}
                   >
-                    <option value="occupé">occupé</option>
-                    <option value="vacant">vacant</option>
+                    <option value="occupé" className="bg-background">occupé</option>
+                    <option value="vacant" className="bg-background">vacant</option>
                   </select>
                 </div>
               </div>
@@ -243,6 +277,7 @@ export default function AppartementsPage() {
                   disabled={isSubmitting}
                   onClick={() => {
                     setEditingId(null);
+                    setShowForm(false);
                     resetForm(null);
                   }}
                 >
@@ -300,52 +335,28 @@ export default function AppartementsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {items.map((item) => {
-                const building = buildingsById.get(item.buildingId);
-                return (
-                  <TableRow key={item.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Home className="h-4 w-4 text-blue-700" />
-                        <span className="font-medium">{item.number}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>{building?.name ?? "—"}</TableCell>
-                    <TableCell>{item.floor}</TableCell>
-                    <TableCell className="text-right">{item.surface} m²</TableCell>
-                    <TableCell className="text-right">{item.rooms}</TableCell>
-                    <TableCell>
-                      <StatusBadge status={item.status} />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-3">
-                        <button
-                          type="button"
-                          className="text-blue-700 hover:text-blue-800"
-                          onClick={() => onEdit(item)}
-                          aria-label={`Modifier ${item.number}`}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          className="text-red-600 hover:text-red-700"
-                          onClick={() => onDelete(item.id)}
-                          aria-label={`Supprimer ${item.number}`}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+              {items.map((item) => (
+                <AppartementRow
+                  key={item.id}
+                  item={item}
+                  building={item.immeuble}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                />
+              ))}
+              {items.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                    Aucun appartement trouvé.
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
 
-      <Pagination 
+      <Pagination
         currentPage={appartementsQ.meta?.current_page || 1}
         lastPage={appartementsQ.meta?.last_page || 1}
         onPageChange={setPage}

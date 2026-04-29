@@ -14,7 +14,7 @@ export default function PageHeader({ title, description, onAdd, addLabel = "+ Aj
           <Button 
             type="button" 
             onClick={onAdd}
-            variant="emerald"
+            variant="modern"
           >
             <Plus className="mr-1 h-4 w-4" />
             {addLabel.replace("+ ", "")}

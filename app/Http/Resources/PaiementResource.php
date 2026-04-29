@@ -14,13 +14,11 @@ class PaiementResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'user_id' => $this->user_id,
             'resident_id' => $this->resident_id,
             'montant' => (float) $this->montant,
             'date_paiement' => $this->date_paiement?->toDateString(),
             'statut' => $this->statut,
-            'created_at' => $this->created_at,
-            'updated_at' => $this->updated_at,
+            'type' => $this->type,
             'resident' => ResidentResource::make($this->whenLoaded('resident')),
         ];
     }

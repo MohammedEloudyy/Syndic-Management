@@ -3,18 +3,30 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Api\Dashboard\DashboardStatsRequest;
 use App\Services\DashboardService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
-    public function stats(DashboardStatsRequest $request, DashboardService $dashboardService): JsonResponse
+    /**
+     * Aggregated Dashboard Overview
+     * Returns stats, charts, and recent activities in one call.
+     */
+    public function overview(Request $request, DashboardService $dashboardService): JsonResponse
     {
-        $request->validated();
-
         return response()->json([
-            'data' => $dashboardService->stats($request->user()),
+            'data' => $dashboardService->getOverview($request->user()),
+        ]);
+    }
+
+    /**
+     * Individual Stats (Fallback/Specific usage)
+     */
+    public function stats(Request $request, DashboardService $dashboardService): JsonResponse
+    {
+        return response()->json([
+            'data' => $dashboardService->getOverview($request->user())['stats'],
         ]);
     }
 }

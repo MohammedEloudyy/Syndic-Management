@@ -10,7 +10,7 @@ import { useAuth } from "@/features/auth/useAuth";
 
 const schema = z.object({
   email: z.string().email("Adresse email invalide"),
-  password: z.string().min(6, "Le mot de passe doit contenir au moins 6 caractères"),
+  password: z.string().min(8, "Le mot de passe doit contenir au moins 8 caractères"),
   remember: z.boolean().optional(),
 });
 
@@ -44,9 +44,9 @@ export default function LoginForm() {
       if (status === 419) {
         setServerError(
           resp?.message ||
-            resp?.error ||
-            (typeof resp === "string" ? resp : null) ||
-            `Erreur de sécurité (CSRF) - HTTP ${status}. Rechargez la page puis réessayez.`,
+          resp?.error ||
+          (typeof resp === "string" ? resp : null) ||
+          `Erreur de sécurité (CSRF) - HTTP ${status}. Rechargez la page puis réessayez.`,
         );
         return;
       }
@@ -62,8 +62,8 @@ export default function LoginForm() {
       if (!errors) {
         setServerError(
           resp?.message ||
-            error?.response?.data?.error ||
-            "Impossible de se connecter. Vérifiez vos identifiants.",
+          error?.response?.data?.error ||
+          "Impossible de se connecter. Vérifiez vos identifiants.",
         );
       }
     }
@@ -138,9 +138,9 @@ export default function LoginForm() {
         </div>
       ) : null}
 
-      <Button 
-        type="submit" 
-        className="w-full h-11" 
+      <Button
+        type="submit"
+        className="w-full h-11"
         variant="modern"
         disabled={isSubmitting}
       >

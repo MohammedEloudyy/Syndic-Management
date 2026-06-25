@@ -24,5 +24,6 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
 
     Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
     Route::get('/dashboard/overview', [DashboardController::class, 'overview']);
+    Route::get('/dashboard/annual', [DashboardController::class, 'annualOverview']);
 });
 

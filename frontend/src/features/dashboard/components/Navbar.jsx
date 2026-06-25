@@ -34,16 +34,6 @@ const Navbar = memo(function Navbar({ onToggleSidebar }) {
       </div>
 
       <div className="flex items-center gap-4">
-        <div className="flex items-center gap-3 rounded-full border bg-background px-3 py-1.5 shadow-sm">
-          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-600 text-[10px] font-bold text-white shadow-md shadow-blue-600/20">
-            {initials}
-          </div>
-          <div className="hidden md:block leading-tight pr-1">
-            <div className="text-[13px] font-bold text-foreground">{displayName}</div>
-            <div className="text-[10px] text-muted-foreground font-medium">{subtitle}</div>
-          </div>
-        </div>
-
         <button
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
           className="flex h-9 w-9 items-center justify-center rounded-full border bg-background text-muted-foreground transition-all hover:bg-muted hover:text-foreground active:scale-90 shadow-sm hover:shadow-md dark:border-slate-800"
@@ -55,6 +45,16 @@ const Navbar = memo(function Navbar({ onToggleSidebar }) {
             <Moon className="h-[1.1rem] w-[1.1rem] text-blue-600 animate-in zoom-in-50 duration-300" />
           )}
         </button>
+
+        <div className="flex items-center gap-3 rounded-full border bg-background px-3 py-1.5 shadow-sm">
+          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-600 text-[10px] font-bold text-white shadow-md shadow-blue-600/20">
+            {initials}
+          </div>
+          <div className="hidden md:block leading-tight pr-1">
+            <div className="text-[13px] font-bold text-foreground">{displayName}</div>
+            <div className="text-[10px] text-muted-foreground font-medium">{subtitle}</div>
+          </div>
+        </div>
       </div>
     </header>
   );

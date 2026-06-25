@@ -133,4 +133,26 @@
   button {
     @apply cursor-pointer;
   }
+
+  /* ── Dark-mode fix for native <select> / <option> ─────────── */
+  .dark select {
+    background-color: oklch(0.205 0 0);
+    /* --card */
+    color: oklch(0.985 0 0);
+    /* --foreground */
+    color-scheme: dark;
+  }
+
+  .dark select option {
+    background-color: oklch(0.205 0 0);
+    /* --card */
+    color: oklch(0.985 0 0);
+    /* --foreground */
+  }
+
+  .dark select option:checked {
+    background-color: oklch(0.269 0 0);
+    /* --accent */
+    color: oklch(0.985 0 0);
+  }
 }

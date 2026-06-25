@@ -347,7 +347,14 @@ export default function AppartementsPage() {
               {items.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                    Aucun appartement trouvé.
+                    {loading ? (
+                      <div className="flex items-center justify-center gap-2">
+                        <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                        <span>Chargement des données...</span>
+                      </div>
+                    ) : (
+                      "Aucun appartement trouvé."
+                    )}
                   </TableCell>
                 </TableRow>
               )}

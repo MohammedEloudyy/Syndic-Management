@@ -124,6 +124,168 @@ class DashboardService
     }
 
     /**
+     * Get the annual dashboard overview for a specific year.
+     */
+    public function getAnnualOverview(User $user, int $year): array
+    {
+        $userId = $user->id;
+        $cacheKey = "dashboard:annual:{$userId}:{$year}";
+
+        return Cache::remember($cacheKey, 120, function () use ($userId, $year) {
+            return [
+                'year' => $year,
+                'stats' => $this->getAnnualStats($userId, $year),
+                'monthly_breakdown' => $this->getAnnualMonthlyBreakdown($userId, $year),
+                'expense_categories' => $this->getAnnualExpenseCategories($userId, $year),
+                'comparison' => $this->getYearComparison($userId, $year),
+            ];
+        });
+    }
+
+    /**
+     * Compute annual financial stats.
+     */
+    private function getAnnualStats(int $userId, int $year): array
+    {
+        $startDate = "{$year}-01-01";
+        $endDate = "{$year}-12-31";
+
+        $finances = DB::query()
+            ->selectRaw('
+                (SELECT COALESCE(SUM(montant), 0) FROM paiements WHERE user_id = ? AND date_paiement BETWEEN ? AND ?) as total_revenue,
+                (SELECT COALESCE(SUM(montant), 0) FROM depenses WHERE user_id = ? AND date_depense BETWEEN ? AND ?) as total_expenses
+            ', [$userId, $startDate, $endDate, $userId, $startDate, $endDate])
+            ->first();
+
+        $statusCounts = Paiement::where('user_id', $userId)
+            ->whereBetween('date_paiement', [$startDate, $endDate])
+            ->select('statut', DB::raw('count(*) as count'))
+            ->groupBy('statut')
+            ->pluck('count', 'statut')
+            ->toArray();
+
+        $totalPayments = array_sum($statusCounts);
+
+        return [
+            'revenue' => (float) $finances->total_revenue,
+            'expenses' => (float) $finances->total_expenses,
+            'balance' => (float) ($finances->total_revenue - $finances->total_expenses),
+            'total_payments' => $totalPayments,
+            'payment_status' => [
+                ['name' => 'Payé', 'value' => (int) ($statusCounts['payé'] ?? 0)],
+                ['name' => 'En attente', 'value' => (int) ($statusCounts['en_attente'] ?? 0)],
+                ['name' => 'En retard', 'value' => (int) ($statusCounts['en_retard'] ?? 0)],
+            ],
+        ];
+    }
+
+    /**
+     * Get monthly revenue vs expenses breakdown for the year.
+     */
+    private function getAnnualMonthlyBreakdown(int $userId, int $year): array
+    {
+        $startDate = "{$year}-01-01";
+        $endDate = "{$year}-12-31";
+
+        $driver = DB::getDriverName();
+        $payFormat = $driver === 'sqlite' ? "strftime('%m', date_paiement)" : "MONTH(date_paiement)";
+        $depFormat = $driver === 'sqlite' ? "strftime('%m', date_depense)" : "MONTH(date_depense)";
+
+        $revenues = Paiement::where('user_id', $userId)
+            ->whereBetween('date_paiement', [$startDate, $endDate])
+            ->selectRaw("$payFormat as month, SUM(montant) as total")
+            ->groupBy('month')
+            ->pluck('total', 'month');
+
+        $expenses = Depense::where('user_id', $userId)
+            ->whereBetween('date_depense', [$startDate, $endDate])
+            ->selectRaw("$depFormat as month, SUM(montant) as total")
+            ->groupBy('month')
+            ->pluck('total', 'month');
+
+        $months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
+        $data = [];
+        for ($i = 1; $i <= 12; $i++) {
+            $monthKey = $driver === 'sqlite' ? str_pad($i, 2, '0', STR_PAD_LEFT) : (string) $i;
+            $rev = (float) ($revenues[$monthKey] ?? 0);
+            $exp = (float) ($expenses[$monthKey] ?? 0);
+            $data[] = [
+                'month' => $months[$i - 1],
+                'month_number' => $i,
+                'revenue' => $rev,
+                'expenses' => $exp,
+                'balance' => $rev - $exp,
+            ];
+        }
+
+        return $data;
+    }
+
+    /**
+     * Get expense breakdown by category for the year.
+     */
+    private function getAnnualExpenseCategories(int $userId, int $year): array
+    {
+        $startDate = "{$year}-01-01";
+        $endDate = "{$year}-12-31";
+
+        return Depense::where('user_id', $userId)
+            ->whereBetween('date_depense', [$startDate, $endDate])
+            ->select('categorie', DB::raw('SUM(montant) as total'), DB::raw('COUNT(*) as count'))
+            ->groupBy('categorie')
+            ->orderByDesc('total')
+            ->get()
+            ->map(fn($item) => [
+                'category' => $item->categorie ?? 'Autres',
+                'total' => (float) $item->total,
+                'count' => (int) $item->count,
+            ])
+            ->toArray();
+    }
+
+    /**
+     * Compare current year with previous year.
+     */
+    private function getYearComparison(int $userId, int $year): array
+    {
+        $prevYear = $year - 1;
+        $currentStart = "{$year}-01-01";
+        $currentEnd = "{$year}-12-31";
+        $prevStart = "{$prevYear}-01-01";
+        $prevEnd = "{$prevYear}-12-31";
+
+        $current = DB::query()
+            ->selectRaw('
+                (SELECT COALESCE(SUM(montant), 0) FROM paiements WHERE user_id = ? AND date_paiement BETWEEN ? AND ?) as revenue,
+                (SELECT COALESCE(SUM(montant), 0) FROM depenses WHERE user_id = ? AND date_depense BETWEEN ? AND ?) as expenses
+            ', [$userId, $currentStart, $currentEnd, $userId, $currentStart, $currentEnd])
+            ->first();
+
+        $previous = DB::query()
+            ->selectRaw('
+                (SELECT COALESCE(SUM(montant), 0) FROM paiements WHERE user_id = ? AND date_paiement BETWEEN ? AND ?) as revenue,
+                (SELECT COALESCE(SUM(montant), 0) FROM depenses WHERE user_id = ? AND date_depense BETWEEN ? AND ?) as expenses
+            ', [$userId, $prevStart, $prevEnd, $userId, $prevStart, $prevEnd])
+            ->first();
+
+        $revenueChange = $previous->revenue > 0
+            ? round((($current->revenue - $previous->revenue) / $previous->revenue) * 100, 1)
+            : ($current->revenue > 0 ? 100 : 0);
+
+        $expenseChange = $previous->expenses > 0
+            ? round((($current->expenses - $previous->expenses) / $previous->expenses) * 100, 1)
+            : ($current->expenses > 0 ? 100 : 0);
+
+        return [
+            'previous_year' => $prevYear,
+            'previous_revenue' => (float) $previous->revenue,
+            'previous_expenses' => (float) $previous->expenses,
+            'revenue_change_percent' => $revenueChange,
+            'expense_change_percent' => $expenseChange,
+        ];
+    }
+
+    /**
      * Get the latest activities (Recent payments).
      */
     private function getRecentActivities(int $userId): array
@@ -136,8 +298,8 @@ class DashboardService
             ->map(fn($p) => [
                 'id' => $p->id,
                 'type' => 'paiement',
-                'title' => "Paiement de " . ($p->resident->full_name ?? 'Resident'),
-                'subtitle' => "Appt " . ($p->resident->appartement->number ?? '-') . " • " . $p->montant . " MAD",
+                'title' => "Paiement de l'appartement " . ($p->resident?->appartement?->number ?? '—'),
+                'subtitle' => "Appt " . ($p->resident?->appartement?->number ?? '-') . " • " . $p->montant . " MAD",
                 'status' => $p->statut,
                 'date' => $p->created_at->diffForHumans(),
             ])

@@ -1,4 +1,4 @@
-import { useMemo, useState, memo } from "react";
+import { useMemo, useState, useEffect, memo } from "react";
 import { Search, Loader2, Pencil, Trash2 } from "lucide-react";
 import StatusBadge from "@/components/common/StatusBadge";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import { useDebounce } from "@/hooks/useDebounce";
 import {
   createPaiement,
   getAppartements,
+  getImmeubles,
   getPaiements,
   getResidents,
   updatePaiement,
@@ -24,7 +25,7 @@ import Pagination from "@/components/common/Pagination";
 import { queryClient } from "@/lib/queryClient";
 
 const schema = z.object({
-  residentId: z.string().min(1, "Résident requis"),
+  residentId: z.string().min(1, "L'appartement sélectionné doit avoir un résident"),
   type: z.string().min(2, "Type requis"),
   amount: z.coerce.number().min(0),
   limitDate: z.string().min(3, "Date requise"),
@@ -42,7 +43,7 @@ function errorMessage(err) {
 const PaiementRow = memo(function PaiementRow({ p, onEdit, onDelete, onPay }) {
   return (
     <TableRow className="hover:bg-muted/50 transition-colors border-border">
-      <TableCell>{p.residentName}</TableCell>
+      <TableCell>{p.buildingName}</TableCell>
       <TableCell>{p.apartmentNumber}</TableCell>
       <TableCell>{p.type}</TableCell>
       <TableCell className="text-right">{p.amount} MAD</TableCell>
@@ -96,6 +97,10 @@ export default function PaiementsPage() {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 500);
 
+  // ── Cascading form selects state ──
+  const [selectedBuildingId, setSelectedBuildingId] = useState("");
+  const [selectedApartmentId, setSelectedApartmentId] = useState("");
+
   const paiementsQ = useResource(getPaiements, {
     statut: statusFilter === "all" ? undefined : statusFilter,
     resident_id: residentFilter === "all" ? undefined : residentFilter,
@@ -103,12 +108,45 @@ export default function PaiementsPage() {
     page
   });
 
+  const immeublesQ = useResource(getImmeubles, { per_page: 1000 });
   const residentsQ = useResource(getResidents, { per_page: 1000 });
   const appartementsQ = useResource(getAppartements, { per_page: 1000 });
 
+  const immeubles = immeublesQ.data ?? [];
   const residents = residentsQ.data ?? [];
   const appartements = appartementsQ.data ?? [];
   const items = paiementsQ.data ?? [];
+
+  // Apartments filtered by selected building
+  const filteredAppartements = useMemo(() => {
+    if (!selectedBuildingId) return [];
+    return appartements.filter(a => String(a.buildingId) === String(selectedBuildingId));
+  }, [appartements, selectedBuildingId]);
+
+  // Residents filtered by selected apartment
+  const filteredResidents = useMemo(() => {
+    if (!selectedApartmentId) return [];
+    return residents.filter(r => String(r.apartmentId) === String(selectedApartmentId));
+  }, [residents, selectedApartmentId]);
+
+  // Auto-select first apartment when building changes
+  useEffect(() => {
+    if (filteredAppartements.length > 0) {
+      setSelectedApartmentId(String(filteredAppartements[0].id));
+    } else {
+      setSelectedApartmentId("");
+    }
+  }, [filteredAppartements]);
+
+  // Auto-select first resident when apartment changes & sync form
+  useEffect(() => {
+    if (filteredResidents.length > 0) {
+      form.setValue("residentId", String(filteredResidents[0].id), { shouldValidate: true });
+    } else {
+      form.setValue("residentId", "", { shouldValidate: true });
+    }
+  }, [filteredResidents]);
+
   const firstResidentId = residents[0]?.id ?? "";
 
   const uniqueResidents = useMemo(() => {
@@ -147,6 +185,19 @@ export default function PaiementsPage() {
       limitDate: item?.limitDate ?? "",
       status: item?.status ?? "en_attente",
     });
+    // Restore cascading selects when editing
+    if (item?.residentId) {
+      const resident = residents.find(r => String(r.id) === String(item.residentId));
+      if (resident) {
+        const apt = appartements.find(a => String(a.id) === String(resident.apartmentId));
+        if (apt) {
+          setSelectedBuildingId(String(apt.buildingId));
+          setSelectedApartmentId(String(apt.id));
+        }
+      }
+    } else {
+      setSelectedBuildingId(immeubles[0]?.id ? String(immeubles[0].id) : "");
+    }
   };
 
   const onEdit = (item) => {
@@ -252,18 +303,51 @@ export default function PaiementsPage() {
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Résident</label>
+                  <label className="text-sm font-medium text-foreground">Immeuble</label>
                   <select
                     className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
-                    {...form.register("residentId")}
+                    value={selectedBuildingId}
+                    onChange={(e) => setSelectedBuildingId(e.target.value)}
                   >
-                    {residents.map((r) => (
-                      <option key={r.id} value={r.id}>
-                        {r.fullName}
+                    <option value="">— Choisir un immeuble —</option>
+                    {immeubles.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name}
                       </option>
                     ))}
                   </select>
                 </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Appartement</label>
+                  <select
+                    className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
+                    value={selectedApartmentId}
+                    onChange={(e) => {
+                      setSelectedApartmentId(e.target.value);
+                    }}
+                    disabled={!selectedBuildingId}
+                  >
+                    <option value="">— Choisir un appartement —</option>
+                    {filteredAppartements.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        N°{a.number} — étage {a.floor}
+                      </option>
+                    ))}
+                  </select>
+                  {selectedApartmentId && filteredResidents.length === 0 && (
+                    <p className="text-xs text-red-500 font-medium mt-1">
+                      Cet appartement n'a aucun résident enregistré.
+                    </p>
+                  )}
+                  {form.formState.errors.residentId && (
+                    <p className="text-xs text-red-500 font-medium mt-1">
+                      {form.formState.errors.residentId.message}
+                    </p>
+                  )}
+                </div>
+
+                <input type="hidden" {...form.register("residentId")} />
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-foreground">Type de paiement</label>
@@ -385,7 +469,7 @@ export default function PaiementsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>RÉSIDENT</TableHead>
+                    <TableHead>IMMEUBLE</TableHead>
                     <TableHead>APPARTEMENT</TableHead>
                     <TableHead>TYPE</TableHead>
                     <TableHead className="text-right">MONTANT</TableHead>
@@ -407,7 +491,14 @@ export default function PaiementsPage() {
                   {items.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                        Aucun paiement trouvé.
+                        {loading ? (
+                          <div className="flex items-center justify-center gap-2">
+                            <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                            <span>Chargement des données...</span>
+                          </div>
+                        ) : (
+                          "Aucun paiement trouvé."
+                        )}
                       </TableCell>
                     </TableRow>
                   )}

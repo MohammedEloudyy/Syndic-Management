@@ -85,10 +85,13 @@ export default function ImmeublesPage() {
     page
   });
 
+  // Separate unfiltered fetch so the city dropdown always shows every city
+  const { data: allItems } = useResource(getImmeubles, {});
+
   const cities = useMemo(() => {
-    const set = new Set(rawItems.map(i => i.city).filter(Boolean));
+    const set = new Set(allItems.map(i => i.city).filter(Boolean));
     return Array.from(set).sort();
-  }, [rawItems]);
+  }, [allItems]);
 
   const immeubles = rawItems;
 
@@ -297,7 +300,14 @@ export default function ImmeublesPage() {
               {immeubles.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} className="px-4 py-6 text-center text-muted-foreground/60">
-                    Aucun immeuble trouvé.
+                    {loading ? (
+                      <div className="flex items-center justify-center gap-2">
+                        <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                        <span>Chargement des données...</span>
+                      </div>
+                    ) : (
+                      "Aucun immeuble trouvé."
+                    )}
                   </TableCell>
                 </TableRow>
               )}

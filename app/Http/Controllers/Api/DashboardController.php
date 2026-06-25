@@ -29,4 +29,17 @@ class DashboardController extends Controller
             'data' => $dashboardService->getOverview($request->user())['stats'],
         ]);
     }
+
+    /**
+     * Annual Dashboard Overview
+     * Returns yearly stats, monthly breakdown, expense categories, and YoY comparison.
+     */
+    public function annualOverview(Request $request, DashboardService $dashboardService): JsonResponse
+    {
+        $year = (int) $request->query('year', now()->year);
+
+        return response()->json([
+            'data' => $dashboardService->getAnnualOverview($request->user(), $year),
+        ]);
+    }
 }

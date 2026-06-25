@@ -110,7 +110,11 @@ export default function RegisterForm() {
           {...form.register("fullName")}
           aria-invalid={!!fullNameError}
         />
-        {fullNameError ? <p className="text-xs text-destructive">{fullNameError}</p> : null}
+        {fullNameError && (
+          <p className="text-xs text-destructive animate-in fade-in slide-in-from-top-1 duration-200">
+            {fullNameError}
+          </p>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -126,7 +130,11 @@ export default function RegisterForm() {
             autoComplete="email"
           />
         </div>
-        {emailError ? <p className="text-xs text-destructive">{emailError}</p> : null}
+        {emailError && (
+          <p className="text-xs text-destructive animate-in fade-in slide-in-from-top-1 duration-200">
+            {emailError}
+          </p>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -150,7 +158,11 @@ export default function RegisterForm() {
             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
         </div>
-        {passwordError ? <p className="text-xs text-destructive">{passwordError}</p> : null}
+        {passwordError && (
+          <p className="text-xs text-destructive animate-in fade-in slide-in-from-top-1 duration-200">
+            {passwordError}
+          </p>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -163,16 +175,19 @@ export default function RegisterForm() {
           aria-invalid={!!passwordConfirmationError}
           autoComplete="new-password"
         />
-        {passwordConfirmationError ? (
-          <p className="text-xs text-destructive">{passwordConfirmationError}</p>
-        ) : null}
+        {passwordConfirmationError && (
+          <p className="text-xs text-destructive animate-in fade-in slide-in-from-top-1 duration-200">
+            {passwordConfirmationError}
+          </p>
+        )}
       </div>
 
-      {serverError ? (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+      {serverError && (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive animate-in zoom-in-95 duration-200">
           {serverError}
         </div>
-      ) : null}
+      )}
+
 
       <Button
         type="submit"

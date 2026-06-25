@@ -17,6 +17,7 @@ const AppartementsPage = lazy(() => import("@/features/dashboard/pages/Apparteme
 const ResidentsPage = lazy(() => import("@/features/dashboard/pages/ResidentsPage"));
 const PaiementsPage = lazy(() => import("@/features/dashboard/pages/PaiementsPage"));
 const DepensesPage = lazy(() => import("@/features/dashboard/pages/DepensesPage"));
+const AnnualDashboardPage = lazy(() => import("@/features/dashboard/pages/AnnualDashboardPage"));
 
 /** Minimal loading spinner shown while a lazy chunk downloads */
 function PageLoader() {
@@ -68,6 +69,7 @@ export const router = createBrowserRouter([
           { path: "/dashboard/residents", element: lazify(ResidentsPage) },
           { path: "/dashboard/paiements", element: lazify(PaiementsPage) },
           { path: "/dashboard/depenses", element: lazify(DepensesPage) },
+          { path: "/dashboard/annuel", element: lazify(AnnualDashboardPage) },
         ],
       },
       // Catch-all: under RequireAuth so guests get redirected to login cleanly

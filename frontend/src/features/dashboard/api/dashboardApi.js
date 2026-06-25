@@ -25,6 +25,7 @@ const mapPaiementFromApi = (item) => ({
   residentName: item.resident?.full_name ?? "—",
   apartmentId: item.resident?.appartement_id ?? null,
   apartmentNumber: item.resident?.appartement?.number ?? "—",
+  buildingName: item.resident?.appartement?.immeuble?.name ?? "—",
   amount: Number(item.montant ?? 0),
   limitDate: item.date_paiement,
   status: item.statut,
@@ -80,6 +81,9 @@ export const getDashboardStats = () =>
 
 export const getDashboardOverview = () =>
   axiosClient.get("/dashboard/overview").then((r) => r.data.data);
+
+export const getAnnualOverview = (year) =>
+  axiosClient.get("/dashboard/annual", { params: { year } }).then((r) => r.data.data);
 
 export const getPublicStats = () =>
   axiosClient.get("/public/stats").then((r) => r.data);

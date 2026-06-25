@@ -422,7 +422,14 @@ export default function DepensesPage() {
                   {items.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                        Aucune dépense trouvée.
+                        {loading ? (
+                          <div className="flex items-center justify-center gap-2">
+                            <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                            <span>Chargement des données...</span>
+                          </div>
+                        ) : (
+                          "Aucune dépense trouvée."
+                        )}
                       </TableCell>
                     </TableRow>
                   )}

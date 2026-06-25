@@ -3,6 +3,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import {
   Building2,
   Building,
+  CalendarDays,
   CreditCard,
   Home,
   Landmark,
@@ -20,6 +21,7 @@ const navItems = [
   { label: "Résidents", to: "/dashboard/residents", icon: Users },
   { label: "Paiements", to: "/dashboard/paiements", icon: CreditCard },
   { label: "Dépenses", to: "/dashboard/depenses", icon: Receipt },
+  { label: "Rapport Annuel", to: "/dashboard/annuel", icon: CalendarDays },
 ];
 
 const Sidebar = memo(function Sidebar({ collapsed = false, onLogout }) {

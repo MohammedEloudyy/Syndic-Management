@@ -90,7 +90,11 @@ export default function LoginForm() {
             aria-invalid={!!emailError}
           />
         </div>
-        {emailError ? <p className="text-xs text-destructive">{emailError}</p> : null}
+        {emailError && (
+          <p className="text-xs text-destructive animate-in fade-in slide-in-from-top-1 duration-200">
+            {emailError}
+          </p>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -114,7 +118,11 @@ export default function LoginForm() {
             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
         </div>
-        {passwordError ? <p className="text-xs text-destructive">{passwordError}</p> : null}
+        {passwordError && (
+          <p className="text-xs text-destructive animate-in fade-in slide-in-from-top-1 duration-200">
+            {passwordError}
+          </p>
+        )}
       </div>
 
       <div className="flex items-center justify-between">
@@ -132,11 +140,12 @@ export default function LoginForm() {
         </Link>
       </div>
 
-      {serverError ? (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+      {serverError && (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive animate-in zoom-in-95 duration-200">
           {serverError}
         </div>
-      ) : null}
+      )}
+
 
       <Button
         type="submit"

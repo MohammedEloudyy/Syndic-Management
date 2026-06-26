@@ -11,10 +11,6 @@ use Illuminate\Support\Facades\Route;
 
 // Public route — aggressive rate limit, no auth needed
 Route::middleware('throttle:10,1')->get('/public/stats', PublicStatsController::class);
-Route::get('/public/seed', function () {
-    \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
-    return response()->json(['message' => 'Database seeded successfully!']);
-});
 
 Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
 

@@ -1,13 +1,9 @@
-import axios from "axios";
-import { getBackendOrigin, webClient } from "@/api/axios";
+import { ensureCsrfToken, webClient } from "@/api/axios";
 
 export async function loginUser(credentials) {
   // Step 1: Get CSRF token from Sanctum
   try {
-    await axios.get(getBackendOrigin() + "/sanctum/csrf-cookie", {
-      withCredentials: true,
-      timeout: 5000,
-    });
+    await ensureCsrfToken();
   } catch (error) {
     console.error("CSRF cookie request failed:", error);
     throw new Error("Impossible d'initialiser la connexion");

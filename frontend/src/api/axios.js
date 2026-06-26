@@ -38,6 +38,24 @@ export const webClient = axios.create({
   },
 });
 
+export async function ensureCsrfToken() {
+  try {
+    const response = await axios.get(BACKEND + "/sanctum/csrf-cookie", {
+      withCredentials: true,
+      timeout: 5000,
+    });
+    const csrfToken = response.headers['x-csrf-token'];
+    if (csrfToken) {
+      webClient.defaults.headers.common['X-CSRF-TOKEN'] = csrfToken;
+      axiosClient.defaults.headers.common['X-CSRF-TOKEN'] = csrfToken;
+    }
+    return csrfToken;
+  } catch (error) {
+    console.error("CSRF bootstrapping failed:", error);
+    throw error;
+  }
+}
+
 /**
  * Shared 401 handler — clears auth state on session expiration.
  * 

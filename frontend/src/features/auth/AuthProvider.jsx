@@ -1,14 +1,16 @@
 import { useEffect } from "react";
 import { getMe } from "./api/me";
 import { useAuthStore } from "./store/authStore";
+import { ensureCsrfToken } from "@/api/axios";
 
 /**
  * AuthProvider - ONLY responsibility: Bootstrap auth state
  * 
  * On mount:
  * 1. Store starts in "loading" state (user === undefined)
- * 2. Call /api/user
- * 3. Update state to "authenticated" (user object) or "guest" (user === null)
+ * 2. Fetch CSRF cookie to register token in headers
+ * 3. Call /api/user
+ * 4. Update state to "authenticated" (user object) or "guest" (user === null)
  * 
  * That's it. No caching, no hacks, no timing tricks.
  * 
@@ -24,6 +26,13 @@ export function AuthProvider({ children }) {
     // Bootstrap auth from backend (store already starts as "loading")
     (async () => {
       try {
+        // Retrieve and register CSRF token for subsequent requests
+        try {
+          await ensureCsrfToken();
+        } catch (csrfErr) {
+          console.error("Failed to bootstrap CSRF cookie:", csrfErr);
+        }
+
         const user = await getMe();
         
         if (!mounted) return;

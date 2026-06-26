@@ -11,6 +11,7 @@ import { Loader2 } from "lucide-react";
 // ── Lazy-loaded pages (each becomes its own JS chunk) ──────
 const LoginPage = lazy(() => import("@/features/auth/pages/LoginPage"));
 const RegisterPage = lazy(() => import("@/features/auth/pages/RegisterPage"));
+const ForgotPasswordPage = lazy(() => import("@/features/auth/pages/ForgotPasswordPage"));
 const DashboardPage = lazy(() => import("@/features/dashboard/pages/DashboardPage"));
 const ImmeublesPage = lazy(() => import("@/features/dashboard/pages/ImmeublesPage"));
 const AppartementsPage = lazy(() => import("@/features/dashboard/pages/AppartementsPage"));
@@ -52,6 +53,7 @@ export const router = createBrowserRouter([
         children: [
           { path: "/login", element: lazify(LoginPage) },
           { path: "/register", element: lazify(RegisterPage) },
+          { path: "/forgot-password", element: lazify(ForgotPasswordPage) },
         ],
       },
     ],

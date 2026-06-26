@@ -92,37 +92,47 @@ export default function AuthLayout() {
             <div className="mx-auto w-full max-w-sm">
               <div className="mb-10 text-center md:text-left">
                 <h2 className="text-3xl font-bold tracking-tight text-slate-900">
-                  {isLogin ? "Bon retour !" : "Bienvenue parmi nous"}
+                  {pathname === "/forgot-password"
+                    ? "Réinitialiser le mot de passe"
+                    : isLogin
+                      ? "Bon retour !"
+                      : "Bienvenue parmi nous"}
                 </h2>
                 <p className="mt-2 text-slate-500">
-                  {isLogin ? "Connectez-vous pour gérer vos immeubles." : "Commencez à digitaliser votre copropriété dès aujourd'hui."}
+                  {pathname === "/forgot-password"
+                    ? "Entrez votre email et choisissez un nouveau mot de passe."
+                    : isLogin
+                      ? "Connectez-vous pour gérer vos immeubles."
+                      : "Commencez à digitaliser votre copropriété dès aujourd'hui."}
                 </p>
               </div>
 
-              <div className="mb-8 flex rounded-2xl bg-slate-100 p-1.5">
-                <Link
-                  to="/login"
-                  className={cn(
-                    "flex-1 rounded-xl px-4 py-2.5 text-center text-sm font-semibold transition-all duration-300",
-                    isLogin
-                      ? "bg-white text-slate-900 shadow-sm"
-                      : "text-slate-500 hover:text-slate-700"
-                  )}
-                >
-                  Connexion
-                </Link>
-                <Link
-                  to="/register"
-                  className={cn(
-                    "flex-1 rounded-xl px-4 py-2.5 text-center text-sm font-semibold transition-all duration-300",
-                    !isLogin
-                      ? "bg-white text-slate-900 shadow-sm"
-                      : "text-slate-500 hover:text-slate-700"
-                  )}
-                >
-                  Inscription
-                </Link>
-              </div>
+              {(pathname === "/login" || pathname === "/register") && (
+                <div className="mb-8 flex rounded-2xl bg-slate-100 p-1.5">
+                  <Link
+                    to="/login"
+                    className={cn(
+                      "flex-1 rounded-xl px-4 py-2.5 text-center text-sm font-semibold transition-all duration-300",
+                      isLogin
+                        ? "bg-white text-slate-900 shadow-sm"
+                        : "text-slate-500 hover:text-slate-700"
+                    )}
+                  >
+                    Connexion
+                  </Link>
+                  <Link
+                    to="/register"
+                    className={cn(
+                      "flex-1 rounded-xl px-4 py-2.5 text-center text-sm font-semibold transition-all duration-300",
+                      !isLogin
+                        ? "bg-white text-slate-900 shadow-sm"
+                        : "text-slate-500 hover:text-slate-700"
+                    )}
+                  >
+                    Inscription
+                  </Link>
+                </div>
+              )}
 
               <div className="relative">
                 <Outlet />

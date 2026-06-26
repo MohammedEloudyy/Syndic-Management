@@ -103,4 +103,53 @@ class AuthTest extends TestCase
 
         $response->assertStatus(200);
     }
+
+    public function test_user_can_reset_password_directly(): void
+    {
+        $user = User::factory()->create([
+            'email' => 'reset@example.com',
+            'password' => bcrypt('oldpassword123'),
+        ]);
+
+        $response = $this->postJson('/direct-reset-password', [
+            'email' => 'reset@example.com',
+            'password' => 'newpassword123',
+            'password_confirmation' => 'newpassword123',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson(['message' => 'Mot de passe réinitialisé avec succès.']);
+
+        $user->refresh();
+        $this->assertTrue(\Illuminate\Support\Facades\Hash::check('newpassword123', $user->password));
+    }
+
+    public function test_direct_password_reset_fails_if_email_not_found(): void
+    {
+        $response = $this->postJson('/direct-reset-password', [
+            'email' => 'nonexistent@example.com',
+            'password' => 'newpassword123',
+            'password_confirmation' => 'newpassword123',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['email']);
+    }
+
+    public function test_direct_password_reset_validation_fails_if_passwords_do_not_match(): void
+    {
+        $user = User::factory()->create([
+            'email' => 'reset@example.com',
+            'password' => bcrypt('oldpassword123'),
+        ]);
+
+        $response = $this->postJson('/direct-reset-password', [
+            'email' => 'reset@example.com',
+            'password' => 'newpassword123',
+            'password_confirmation' => 'differentpassword',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['password']);
+    }
 }

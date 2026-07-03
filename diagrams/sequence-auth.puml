@@ -1,0 +1,35 @@
+
+@startuml
+
+title Diagramme de Séquence - Authentification
+
+actor "Utilisateur\n(Syndic)" as User
+participant "Frontend React" as Frontend
+participant "Backend Laravel" as Backend
+database "Base de données" as DB
+
+' Authentification
+User -> Frontend : Saisir email/mot de passe
+activate Frontend
+Frontend -> Backend : POST /api/login (email, password)
+activate Backend
+Backend -> DB : Vérifier credentials
+activate DB
+DB --> Backend : Utilisateur trouvé ?
+deactivate DB
+
+alt Credentials valides
+    Backend -> Backend : Générer token Sanctum
+    Backend --> Frontend : 200 OK + Token + User data
+    deactivate Backend
+    Frontend -> Frontend : Stocker token (localStorage)
+    Frontend -> Frontend : Rediriger vers /dashboard
+    Frontend --> User : Afficher dashboard
+else Credentials invalides
+    Backend --> Frontend : 401 Unauthorized
+    deactivate Backend
+    Frontend --> User : Afficher message d'erreur
+end
+deactivate Frontend
+
+@enduml

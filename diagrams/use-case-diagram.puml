@@ -1,0 +1,42 @@
+
+@startuml
+
+!define RECTANGLE class
+!pragma layout smetana
+
+title Diagramme de Cas d'Utilisation - Syndic Management
+
+left to right direction
+skinparam packageStyle rectangle
+
+actor "Syndic\n(Administrateur)" as Syndic
+
+package "Application Syndic Management" {
+    usecase "Se connecter" as UC_Login
+    usecase "Se déconnecter" as UC_Logout
+    usecase "Gérer les immeubles\n(Créer/Lire/Modifier/Supprimer)" as UC_Immeubles
+    usecase "Gérer les appartements\n(Créer/Lire/Modifier/Supprimer)" as UC_Appartements
+    usecase "Gérer les résidents\n(Créer/Lire/Modifier/Supprimer)" as UC_Residents
+    usecase "Gérer les paiements\n(Créer/Lire/Modifier/Supprimer)" as UC_Paiements
+    usecase "Gérer les dépenses\n(Créer/Lire/Modifier/Supprimer)" as UC_Depenses
+    usecase "Voir le dashboard principal" as UC_Dashboard
+    usecase "Voir le rapport annuel" as UC_AnnualReport
+}
+
+' Relations
+Syndic --> UC_Login
+Syndic --> UC_Logout
+Syndic --> UC_Immeubles
+Syndic --> UC_Appartements
+Syndic --> UC_Residents
+Syndic --> UC_Paiements
+Syndic --> UC_Depenses
+Syndic --> UC_Dashboard
+Syndic --> UC_AnnualReport
+
+' Inclusions/Extensions (si nécessaire)
+UC_Immeubles <|-- UC_Appartements : <<include>>
+UC_Appartements <|-- UC_Residents : <<include>>
+UC_Residents <|-- UC_Paiements : <<include>>
+
+@enduml

@@ -1,0 +1,135 @@
+
+@startuml
+
+!define RECTANGLE class
+!pragma layout smetana
+
+title Diagramme de Classes - Syndic Management
+
+' Définition des classes
+class User {
+  - id: int
+  - name: string
+  - email: string
+  - password: string
+  - email_verified_at: datetime
+  - created_at: datetime
+  - updated_at: datetime
+  + immeubles(): HasMany
+  + appartements(): HasMany
+  + residents(): HasMany
+  + paiements(): HasMany
+  + depenses(): HasMany
+  + roles(): BelongsToMany
+  + hasRole(slug: string): bool
+  + hasPermission(slug: string): bool
+}
+
+class Immeuble {
+  - id: string (UUID)
+  - user_id: int
+  - name: string
+  - address: string
+  - city: string
+  - apartment_count: int
+  - created_at: datetime
+  - updated_at: datetime
+  + user(): BelongsTo
+  + appartements(): HasMany
+  + depenses(): HasMany
+}
+
+class Appartement {
+  - id: string (UUID)
+  - user_id: int
+  - immeuble_id: string (UUID)
+  - number: string
+  - floor: int
+  - surface: int
+  - rooms: int
+  - status: string
+  - created_at: datetime
+  - updated_at: datetime
+  + user(): BelongsTo
+  + immeuble(): BelongsTo
+  + residents(): HasMany
+}
+
+class Resident {
+  - id: string (UUID)
+  - user_id: int
+  - appartement_id: string (UUID)
+  - full_name: string
+  - email: string
+  - phone: string
+  - entry_date: date
+  - monthly_charge: decimal
+  - created_at: datetime
+  - updated_at: datetime
+  + user(): BelongsTo
+  + appartement(): BelongsTo
+  + paiements(): HasMany
+  + paiementsPayes(): HasMany
+}
+
+class Paiement {
+  - id: string (UUID)
+  - user_id: int
+  - resident_id: string (UUID)
+  - montant: decimal
+  - date_paiement: date
+  - statut: string
+  - type: string
+  - created_at: datetime
+  - updated_at: datetime
+  + user(): BelongsTo
+  + resident(): BelongsTo
+}
+
+class Depense {
+  - id: string (UUID)
+  - user_id: int
+  - immeuble_id: string (UUID)
+  - titre: string
+  - montant: decimal
+  - date_depense: date
+  - categorie: string
+  - created_at: datetime
+  - updated_at: datetime
+  + user(): BelongsTo
+  + immeuble(): BelongsTo
+}
+
+class Role {
+  - id: int
+  - name: string
+  - slug: string
+  - created_at: datetime
+  - updated_at: datetime
+}
+
+class Permission {
+  - id: int
+  - name: string
+  - slug: string
+  - created_at: datetime
+  - updated_at: datetime
+}
+
+' Relations
+User "1" -- "0..*" Immeuble : has
+User "1" -- "0..*" Appartement : has
+User "1" -- "0..*" Resident : has
+User "1" -- "0..*" Paiement : has
+User "1" -- "0..*" Depense : has
+User "1" -- "0..*" Role : has (many-to-many)
+Role "1" -- "0..*" Permission : has (many-to-many)
+
+Immeuble "1" -- "0..*" Appartement : contains
+Immeuble "1" -- "0..*" Depense : has
+
+Appartement "1" -- "0..*" Resident : contains
+
+Resident "1" -- "0..*" Paiement : has
+
+@enduml

@@ -1,0 +1,43 @@
+
+@startuml
+
+title Diagramme de Déploiement - Syndic Management
+
+skinparam componentStyle rectangle
+
+node "Navigateur Web" {
+    [Application React\n(Frontend)] as Frontend
+}
+
+node "Serveur Web" {
+    [API Laravel\n(Backend)] as Backend
+    [Serveur Web\n(Nginx/Apache)] as WebServer
+}
+
+node "Base de données" {
+    [SQLite/MySQL/PostgreSQL] as DB
+}
+
+' Relations
+Frontend -- WebServer : Requêtes HTTP/HTTPS
+WebServer -- Backend : Proxy inverse
+Backend -- DB : Requêtes SQL
+
+note right of Frontend
+  Technologies :
+  - React 19
+  - TanStack Query
+  - Zustand
+  - Tailwind CSS
+  - ShadCN UI
+end note
+
+note right of Backend
+  Technologies :
+  - Laravel 12
+  - Sanctum (Auth)
+  - Eloquent ORM
+  - Cache (Redis/File)
+end note
+
+@enduml

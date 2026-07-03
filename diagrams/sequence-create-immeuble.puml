@@ -1,0 +1,29 @@
+
+@startuml
+
+title Diagramme de Séquence - Créer un Immeuble
+
+actor "Syndic" as Syndic
+participant "Frontend React" as Frontend
+participant "Backend Laravel" as Backend
+database "Base de données" as DB
+
+' Créer un immeuble
+Syndic -> Frontend : Remplir formulaire (nom, adresse, ville, nb appartements)
+activate Frontend
+Frontend -> Backend : POST /api/immeubles (data) + Token
+activate Backend
+Backend -> Backend : Valider les données (FormRequest)
+Backend -> Backend : Vérifier autorisation (Policy)
+Backend -> DB : Insérer immeuble (UUID, user_id, ...)
+activate DB
+DB --> Backend : Immeuble créé
+deactivate DB
+Backend --> Frontend : 201 Created + ImmeubleResource
+deactivate Backend
+Frontend -> Frontend : Afficher message de succès
+Frontend -> Frontend : Mettre à jour la liste des immeubles
+Frontend --> Syndic : Afficher l'immeuble créé
+deactivate Frontend
+
+@enduml
